@@ -1,7 +1,7 @@
 from core.project import Project
-from ui.dialogs.new_project import NewProjectDialog
 from ui.dialogs.confirm_exit import ConfirmExitDialog
-
+from services.image_service import ImageService
+from ui.dialogs.new_project import NewProjectDialog
 
 class AppController:
     """
@@ -24,6 +24,7 @@ class AppController:
         self.state = state
         self.file_service = file_service
         self.recent_manager = recent_manager
+        self.image_service = ImageService()
 
     # ==========================================================
     # HOME
@@ -129,3 +130,14 @@ class AppController:
         """
         self.layout.show("editor")
         self.layout.load_project_into_editor(project)
+
+    def refresh_canvas(self):
+        """
+        Le pide a la pantalla actual que redibuje el canvas
+        siempre y cuando sea la pantalla del editor.
+        """
+
+        screen = self.layout.current_screen
+
+        if screen and hasattr(screen, "_render_canvas"):
+            screen._render_canvas()
