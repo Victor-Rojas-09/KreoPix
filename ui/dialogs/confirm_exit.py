@@ -1,5 +1,5 @@
 import tkinter as tk
-
+from utils.window_positioner import WindowPositioner
 
 class ConfirmExitDialog(tk.Toplevel):
     """Exit confirmation dialog."""
@@ -10,6 +10,10 @@ class ConfirmExitDialog(tk.Toplevel):
         self.on_confirm = on_confirm
 
         self.title("Exit")
+        self.resizable(False, False)
+
+        WindowPositioner.center_to_parent(self, parent, 200, 150)
+
         self.transient(parent)
         self.grab_set()
 
