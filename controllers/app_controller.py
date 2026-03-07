@@ -1,3 +1,4 @@
+from tkinter import messagebox
 from core.project import Project
 from ui.dialogs.confirm_exit import ConfirmExitDialog
 from services.image_service import ImageService
@@ -66,20 +67,25 @@ class AppController:
 
         self._go_to_editor(project)
 
+
+
     def request_open_recent(self, path):
         """
         Open a project from recent list.
         """
+
         try:
             project = self.file_service.open_from_path(path)
-        except Exception:
-            # File may have been deleted
-            return
+            self.state.set_project(project)
+            self.recent_manager.add_recent(path)
+            self._go_to_editor(project)
 
-        self.state.set_project(project)
-        self.recent_manager.add_recent(path)
+        except FileNotFoundError:
+            messagebox.showerror("Error", f"El archivo no existe en la ruta:\n{path}")
+            self.recent_manager.remove_recent(path)
 
-        self._go_to_editor(project)
+        except Exception as e:
+            messagebox.showerror("Error inesperado", f"No se pudo abrir el proyecto: {e}")
 
     def request_save(self):
         """
@@ -133,11 +139,11 @@ class AppController:
 
     def refresh_canvas(self):
         """
-        Le pide a la pantalla actual que redibuje el canvas
-        siempre y cuando sea la pantalla del editor.
+        In the current screen refresh canvas,
+        only if is the edit screen.
         """
 
         screen = self.layout.current_screen
 
-        if screen and hasattr(screen, "_render_canvas"):
-            screen._render_canvas()
+        if screen and hasattr(screen, "refresh"):
+            screen.refresh()
