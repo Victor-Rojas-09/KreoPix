@@ -50,7 +50,7 @@ class EditorScreen(tk.Frame):
 
         self.update()
 
-        self._render_canvas()
+        self.refresh()
 
         layers = self.controller.state.get_layers()
         self.right_panel.layers_panel.load_layers(layers)
@@ -59,7 +59,7 @@ class EditorScreen(tk.Frame):
     # RENDER LOGIC
     # ==================================================
 
-    def _render_canvas(self):
+    def refresh(self):
         """Mix the layers and update the central canvas."""
 
         project = self.controller.state.get_project()
@@ -282,9 +282,10 @@ class LayersPanel(tk.Frame):
         header = tk.Frame(self, bg="#555")
         header.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 
+
         header.columnconfigure(1, weight=1)
 
-        # Layer mode button
+        # Button mode
         self.mode_button = tk.Label(
             header,
             text="Normal",
@@ -294,19 +295,17 @@ class LayersPanel(tk.Frame):
             pady=4,
             cursor="hand2"
         )
-        self.mode_button.grid(row=0, column=0, padx=5)
-
-        self.mode_button.bind("<Button-1>", self._show_mode_menu)
+        self.mode_button.grid(row=0, column=0, padx=(5, 15))
 
         # Opacity slider
         self.opacity_slider = BlueSlider(
             header,
-            width=180,
+            width=100,
             height=16,
             command=self._on_opacity_change
         )
 
-        self.opacity_slider.grid(row=0, column=1, sticky="ew")
+        self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
     def _build_layers_area(self):
         """Build layers container."""

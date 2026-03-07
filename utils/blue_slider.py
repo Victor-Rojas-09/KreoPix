@@ -18,7 +18,7 @@ class BlueSlider(tk.Canvas):
             parent,
             width=width,
             height=height,
-            bg="white",
+            bg="#555",
             highlightthickness=0
         )
 
@@ -36,6 +36,12 @@ class BlueSlider(tk.Canvas):
 
         self.bind("<Button-1>", self.update_value)
         self.bind("<B1-Motion>", self.update_value)
+        self.bind("<Configure>", self._on_resize)
+
+    def _on_resize(self, event):
+        """update the width on widget went change."""
+        self.width = event.width
+        self.draw()
 
     def draw(self):
 
@@ -50,10 +56,10 @@ class BlueSlider(tk.Canvas):
             outline=""
         )
 
-        # ancho azul
+        # Blue width
         fill_width = (self.value / 100) * self.width
 
-        # parte azul
+        # Blue part
         self.create_rectangle(
             0, 0,
             fill_width,
