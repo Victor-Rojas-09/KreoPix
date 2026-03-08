@@ -1,6 +1,3 @@
-import tkinter as tk
-from PIL import ImageTk
-
 class WindowPositioner:
     """Window positioning utilities."""
 
