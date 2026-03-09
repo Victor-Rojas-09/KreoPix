@@ -1,7 +1,6 @@
 import json
 import os
 
-
 class RecentManager:
     """Manages recently opened projects."""
 

@@ -3,6 +3,7 @@ from core.project import Project
 from ui.dialogs.confirm_exit import ConfirmExitDialog
 from services.image_service import ImageService
 from ui.dialogs.new_project import NewProjectDialog
+import os
 
 class AppController:
     """
@@ -33,15 +34,23 @@ class AppController:
 
     def load_home(self):
         """
-        Load home screen and inject recent projects.
+        Loads the Home screen and provides recent project metadata.
         """
-        recent_files = self.recent_manager.get_recent()
+
+        recent_paths = self.recent_manager.get_recent()
+
+        recent_projects = [
+            {
+                "path": path,
+                "name": os.path.basename(path)
+            }
+            for path in recent_paths
+        ]
 
         self.layout.show("home")
 
-        # current_screen is HomeScreen at this point
-        if hasattr(self.layout.current_screen, "set_recent"):
-            self.layout.current_screen.set_recent(recent_files)
+        home_screen = self.layout.current_screen
+        home_screen.set_recent(recent_projects)
 
     # ==========================================================
     # UI REQUESTS
@@ -81,11 +90,11 @@ class AppController:
             self._go_to_editor(project)
 
         except FileNotFoundError:
-            messagebox.showerror("Error", f"El archivo no existe en la ruta:\n{path}")
+            messagebox.showerror("Error", f"No found file in:\n{path}")
             self.recent_manager.remove_recent(path)
 
         except Exception as e:
-            messagebox.showerror("Error inesperado", f"No se pudo abrir el proyecto: {e}")
+            messagebox.showerror("Error", f"The project could not be opened: {e}")
 
     def request_save(self):
         """
