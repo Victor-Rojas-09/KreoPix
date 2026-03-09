@@ -133,15 +133,10 @@ class HomeScreen(tk.Frame):
         for project in self.recent_files:
             self._create_recent_card(project)
 
+
     def _create_recent_card(self, project):
         """
         Creates a visual card representing a recent project.
-
-        Each card shows:
-        - Thumbnail preview
-        - File name
-
-        Clicking the card opens the project.
         """
 
         frame = tk.Frame(
@@ -169,17 +164,13 @@ class HomeScreen(tk.Frame):
         except Exception:
             pass
 
-        if photo is not None:
-            label_img = tk.Label(frame, image=photo)
-            label_img.pack()
-
-        tk.Label(
+        label = tk.Label(
             frame,
             text=name,
-            font=("Arial", 11)
-        ).pack(pady=5)
-
-        frame.bind(
-            "<Button-1>",
-            lambda e, p=path: self.controller.request_open_recent(p)
+            image=photo,
+            compound="top",
+            font=("Arial", 11),
+            pady = 10
         )
+        label.pack(padx=5, pady=5)
+        label.bind("<Button-1>", lambda e, p=path: self.controller.request_open_recent(p))
