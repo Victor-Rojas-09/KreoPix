@@ -1,6 +1,5 @@
 from PIL import Image
 
-
 class Layer:
     """Represents a single image layer."""
 

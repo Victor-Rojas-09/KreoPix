@@ -1,5 +1,4 @@
 import tkinter as tk
-
 from utils.blue_slider import BlueSlider
 from ui.components.layer_row import LayerRow
 

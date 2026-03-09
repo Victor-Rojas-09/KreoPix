@@ -1,6 +1,5 @@
 import tkinter as tk
 
-
 class LayerRow(tk.Frame):
     """Single layer row widget."""
 

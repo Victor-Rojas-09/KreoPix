@@ -1,9 +1,6 @@
-# services/file_service.py
-
 from tkinter import filedialog
 from PIL import Image
 from core.project import Project
-
 
 class FileService:
     """Handles file I/O operations."""
