@@ -1,6 +1,5 @@
 import tkinter as tk
 
-
 class BrushPanel(tk.Frame):
     """Brush selection panel."""
 

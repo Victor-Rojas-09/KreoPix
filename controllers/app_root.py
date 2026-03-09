@@ -62,4 +62,5 @@ class AppRoot:
 
     def run(self):
         """Start application loop."""
+
         self.root.mainloop()

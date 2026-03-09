@@ -14,6 +14,11 @@ class MenuBar:
         self._build()
 
     def _build(self):
+        """
+        Builds the File menu for the application's main menu bar and
+        separators are added between logical groups of commands.
+        """
+
         file_menu = tk.Menu(self.menu, tearoff=0)
 
         file_menu.add_command(

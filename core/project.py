@@ -52,4 +52,5 @@ class Project:
         return base
 
     def add_layer(self, layer):
+        """Add a background layers."""
         self.layers.append(layer)

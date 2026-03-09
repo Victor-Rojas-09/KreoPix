@@ -1,6 +1,5 @@
 import tkinter as tk
 
-
 class ColorPanel(tk.Frame):
     """Color selection panel."""
 

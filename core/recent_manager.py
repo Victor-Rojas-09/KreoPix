@@ -10,15 +10,28 @@ class RecentManager:
         self._ensure_file()
 
     def _ensure_file(self):
+        """
+        Ensures that the recent projects JSON file exists.
+        """
+
         if not os.path.exists(self.file_path):
             with open(self.file_path, "w") as f:
                 json.dump([], f)
 
     def get_recent(self):
+        """
+        Retrieves the list of recently opened project paths.
+        """
+
         with open(self.file_path, "r") as f:
             return json.load(f)
 
     def add_recent(self, path):
+        """
+        Adds a project path to the recent list, moving it to the top if it already exists.
+        Keeps the list within the maximum allowed items.
+        """
+
         recent = self.get_recent()
 
         if path in recent:

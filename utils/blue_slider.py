@@ -40,10 +40,12 @@ class BlueSlider(tk.Canvas):
 
     def _on_resize(self, event):
         """update the width on widget went change."""
+
         self.width = event.width
         self.draw()
 
     def draw(self):
+        """Draw the progress bar background and filled portion."""
 
         self.delete("all")
 
@@ -69,6 +71,7 @@ class BlueSlider(tk.Canvas):
         )
 
     def update_value(self, event):
+        """Update value from mouse event and redraw the bar."""
 
         raw = (event.x / self.width) * 100
 
@@ -80,11 +83,13 @@ class BlueSlider(tk.Canvas):
             self.command(self.value)
 
     def set_value(self, value):
+        """Set the bar to a specific value (0-100) and redraw."""
 
         self.value = int(max(0, min(100, value)))
 
         self.draw()
 
     def get_value(self):
+        """Return the current value of the bar."""
 
         return self.value

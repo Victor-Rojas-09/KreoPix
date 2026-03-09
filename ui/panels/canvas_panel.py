@@ -1,4 +1,5 @@
 import tkinter as tk
+
 from PIL import Image, ImageTk
 
 class CanvasPanel(tk.Frame):

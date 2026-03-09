@@ -1,4 +1,5 @@
 import tkinter as tk
+
 from utils.window_positioner import WindowPositioner
 
 class ConfirmExitDialog(tk.Toplevel):
