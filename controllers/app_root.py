@@ -26,6 +26,8 @@ class AppRoot:
         self.root.geometry("1000x700")
         self.root.minsize(800, 600)
 
+        # Window Icon
+        self.root.iconbitmap("assets/app/logo.png")
         # Core Layer
         self.state = AppState()
         self.recent_manager = RecentManager()
