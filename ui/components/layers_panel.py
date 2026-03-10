@@ -30,7 +30,6 @@ class LayersPanel(tk.Frame):
 
         header = tk.Frame(self, bg="#555")
         header.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-
         header.columnconfigure(1, weight=1)
 
         self.mode_button = tk.Label(
@@ -50,8 +49,25 @@ class LayersPanel(tk.Frame):
             height=16,
             command=self._on_opacity_change
         )
-
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
+
+        add_btn = tk.Button(
+            header,
+            text="+ Capa",
+            bg="#777",
+            fg="white",
+            padx=5,
+            pady=2,
+            command=self._on_add_layer
+        )
+        add_btn.grid(row=0, column=2, padx=(5, 5))
+
+        self.opacity_slider = BlueSlider(
+            header,
+            width=100,
+            height=16,
+            command=self._on_opacity_change
+        )
 
     def _build_layers_area(self):
 
@@ -101,3 +117,9 @@ class LayersPanel(tk.Frame):
             )
 
             self.controller.refresh_canvas()
+
+    def _on_add_layer(self):
+        """Request controller to add new layer."""
+
+        if self.controller:
+            self.controller.add_new_layer()

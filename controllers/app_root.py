@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from core.app_state import AppState
+from core.state.app_state import AppState
 from core.recent_manager import RecentManager
 from services.file_service import FileService
 from controllers.app_controller import AppController
