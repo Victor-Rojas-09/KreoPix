@@ -1,6 +1,5 @@
 import tkinter as tk
 
-
 class MenuBar:
     """Application menu bar."""
 

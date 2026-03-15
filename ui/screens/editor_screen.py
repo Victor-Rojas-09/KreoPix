@@ -1,5 +1,4 @@
 import tkinter as tk
-from PIL import Image
 
 from ui.panels.tools_panel import ToolsPanel
 from ui.panels.canvas_panel import CanvasPanel
@@ -62,15 +61,9 @@ class EditorScreen(tk.Frame):
     # API
     # ==================================================
 
-    def load_project(self, project):
-        """Load project into editor."""
-
-        self.controller.state.set_project(project)
-
-        layers = self.controller.state.get_layers()
-
-        self.right_sidebar.layers_panel.load_layers(layers)
-
+    def load_project(self, image_format):
+        self.controller.state.set_format(image_format)
+        # No need to call load_layers manually, listeners handle it
         self.refresh()
 
     # ==================================================
@@ -78,19 +71,9 @@ class EditorScreen(tk.Frame):
     # ==================================================
 
     def refresh(self):
-        """Mix layers and update the canvas."""
-        project = self.controller.state.get_project()
-        if not project or not hasattr(project, 'width'):
+        if not self.controller.state.has_format():
             return
 
-        # Background
-        base = Image.new("RGBA", (project.width, project.height), (0, 0, 0, 0))
+        image = self.controller.state.current_format.composite()
+        self.canvas_panel.display_image(image)
 
-        # Mix layers
-        layers = project.get_layers() if hasattr(project, 'get_layers') else project.layers
-        for layer in layers:
-            if layer.visible:
-                base.alpha_composite(layer.image)
-
-        # Update canvas
-        self.canvas_panel.display_image(base)

@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from utils.window_positioner import WindowPositioner
+from ui.utils.tools.window_positioner import WindowPositioner
 
 class ConfirmExitDialog(tk.Toplevel):
     """Exit confirmation dialog."""

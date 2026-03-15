@@ -1,19 +1,21 @@
 from tkinter import messagebox
-from core.project import Project
-from ui.dialogs.confirm_exit import ConfirmExitDialog
-from services.image_service import ImageService
-from ui.dialogs.new_project import NewProjectDialog
 import os
+
+from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
+from ui.utils.dialogs.new_project import NewProjectDialog
+from services.images.image_service import ImageService
+
 
 class AppController:
     """
     Main application controller.
 
     Responsibilities:
-    - Orchestrate the UI, Core, Services
-    - Handle navigation
-    - Manage state transitions
-    - Coordinate file operations
+    - Orchestrate UI, Core and Services
+    - Handle navigation between screens
+    - Manage application state
+    - Coordinate file operations (open, save, recent)
+    - Delegate layer operations to AppState and Services
     """
 
     # ==========================================================
@@ -33,22 +35,15 @@ class AppController:
     # ==========================================================
 
     def load_home(self):
-        """
-        Loads the Home screen and provides recent project metadata.
-        """
-
+        """Load Home screen and show recent projects."""
         recent_paths = self.recent_manager.get_recent()
 
         recent_projects = [
-            {
-                "path": path,
-                "name": os.path.basename(path)
-            }
+            {"path": path, "name": os.path.basename(path)}
             for path in recent_paths
         ]
 
         self.layout.show("home")
-
         home_screen = self.layout.current_screen
         home_screen.set_recent(recent_projects)
 
@@ -57,73 +52,56 @@ class AppController:
     # ==========================================================
 
     def request_new_project(self):
-        """
-        Trigger new project dialog.
-        """
+        """Open dialog to create a new blank project."""
         NewProjectDialog(self.root, self._create_project)
 
     def request_open(self):
-        """
-        Open project via file dialog.
-        """
-        project, path = self.file_service.open_image()
-
-        if not project:
+        """Open project using file dialog."""
+        document, path = self.file_service.open_image()
+        if not document:
             return
 
-        self.state.set_project(project)
-        self.recent_manager.add_recent(path)
+        self.state.set_format(document)
+        if path:
+            self.recent_manager.add_recent(path)
 
-        self._go_to_editor(project)
-
-
+        self._go_to_editor(document)
 
     def request_open_recent(self, path):
-        """
-        Open a project from recent list.
-        """
-
+        """Open a project from recent list."""
         try:
-            project = self.file_service.open_from_path(path)
-            self.state.set_project(project)
+            document = self.file_service.open_from_path(path)
+            self.state.set_format(document)
             self.recent_manager.add_recent(path)
-            self._go_to_editor(project)
+            self._go_to_editor(document)
 
         except FileNotFoundError:
-            messagebox.showerror("Error", f"No found file in:\n{path}")
+            messagebox.showerror("Error", f"File not found:\n{path}")
             self.recent_manager.remove_recent(path)
 
         except Exception as e:
-            messagebox.showerror("Error", f"The project could not be opened: {e}")
+            messagebox.showerror("Error", f"The project could not be opened:\n{e}")
 
     def request_save(self):
-        """
-        Save current project.
-        """
-        if not self.state.has_project():
+        """Save current project."""
+        document = self.state.get_format()
+        if not document:
             return
 
-        path = self.file_service.save_project(
-            self.state.current_project
-        )
-
+        path = self.file_service.save_project(document)
         if path:
             self.recent_manager.add_recent(path)
 
     def request_exit(self):
-        """
-        Handle exit request.
-        """
-        if self.state.has_project():
+        """Handle exit request."""
+        if self.state.has_format():
             ConfirmExitDialog(self.root, self.root.destroy)
         else:
             self.root.destroy()
 
     def request_back_home(self):
-        """
-        Optional: return to home screen.
-        """
-        self.state.clear_project()
+        """Return to home screen."""
+        self.state.clear_format()
         self.load_home()
 
     # ==========================================================
@@ -132,27 +110,83 @@ class AppController:
 
     def _create_project(self, width, height):
         """
-        Internal project creation.
+        Create a new blank document and open editor.
+        Always includes a background layer and an initial editable layer.
         """
-        project = Project(width=width, height=height)
+        document = self.image_service.create_blank_format(width, height)
 
-        self.state.set_project(project)
-        self._go_to_editor(project)
+        # Add initial editable transparent layer
+        document.add_layer(name="Layer 1")
 
-    def _go_to_editor(self, project):
-        """
-        Navigate to editor and render project.
-        """
+        self.state.set_format(document)
+        self.state.set_selected_layer(len(document.get_layers()) - 1)
+
+        self._go_to_editor(document)
+
+    def _go_to_editor(self, document):
+        """Navigate to editor and load project."""
         self.layout.show("editor")
-        self.layout.load_project_into_editor(project)
+        self.layout.load_project_into_editor(document)
+
+        # Initial refresh
+        self.refresh_layers()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # CANVAS / UI REFRESH
+    # ==========================================================
 
     def refresh_canvas(self):
-        """
-        In the current screen refresh canvas,
-        only if is the edit screen.
-        """
-
+        """Refresh canvas if current screen supports it."""
         screen = self.layout.current_screen
-
         if screen and hasattr(screen, "refresh"):
             screen.refresh()
+
+    def refresh_layers(self):
+        """Refresh layer panel if current screen supports it."""
+        screen = self.layout.current_screen
+        if screen and hasattr(screen, "refresh_layers"):
+            screen.refresh_layers()
+
+    # ==========================================================
+    # DOCUMENT HELPERS
+    # ==========================================================
+
+    def get_document(self):
+        """Return current document."""
+        return self.state.get_format()
+
+    def get_layers(self):
+        """Return document layers."""
+        document = self.get_document()
+        if not document:
+            return []
+        return document.get_layers()
+
+    # ==========================================================
+    # LAYER OPERATIONS
+    # ==========================================================
+
+    def add_new_layer(self, name=None):
+        document = self.get_document()
+        if not document:
+            return
+
+        if name is None:
+            name = f"Layer {len(document.get_layers()) + 1}"
+
+        # Insert new layer after selected index
+        index = self.state.selected_layer_index
+        new_layer = document.add_layer(name=name)
+        document.layers.insert(index + 1, new_layer)
+
+        self.state.set_selected_layer(index + 1)
+
+        self.refresh_layers()
+        self.refresh_canvas()
+
+    def select_layer(self, index):
+        """Select layer by index."""
+        self.state.set_selected_layer(index)
+        self.refresh_layers()
+        self.refresh_canvas()
