@@ -1,8 +1,8 @@
 import tkinter as tk
 
 from core.state.app_state import AppState
-from core.recent_manager import RecentManager
-from services.file_service import FileService
+from core.files.recent_manager import RecentManager
+from services.files.file_service import FileService
 from controllers.app_controller import AppController
 from ui.layout.main_layout import MainLayout
 from ui.layout.menubar import MenuBar
@@ -25,6 +25,8 @@ class AppRoot:
         self.root.title("KreoPix")
         self.root.geometry("1000x700")
         self.root.minsize(800, 600)
+        # Window Icon
+        self.root.iconbitmap("assets/app/Logo.ico")
 
         # Core Layer
         self.state = AppState()

@@ -1,5 +1,4 @@
 import tkinter as tk
-from PIL import Image
 
 from ui.panels.tools_panel import ToolsPanel
 from ui.panels.canvas_panel import CanvasPanel
@@ -64,8 +63,7 @@ class EditorScreen(tk.Frame):
 
     def load_project(self, image_format):
         self.controller.state.set_format(image_format)
-        layers = self.controller.state.get_layers()
-        self.right_sidebar.layers_panel.load_layers(layers)
+        # No need to call load_layers manually, listeners handle it
         self.refresh()
 
     # ==================================================

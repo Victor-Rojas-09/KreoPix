@@ -1,21 +1,21 @@
 from tkinter import messagebox
 import os
 
-from core.image.image_format import ImageFormat
-from ui.dialogs.confirm_exit import ConfirmExitDialog
-from ui.dialogs.new_project import NewProjectDialog
-from services.image_service import ImageService
+from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
+from ui.utils.dialogs.new_project import NewProjectDialog
+from services.images.image_service import ImageService
+
 
 class AppController:
     """
     Main application controller.
 
-    ```
     Responsibilities:
     - Orchestrate UI, Core and Services
-    - Handle navigation
+    - Handle navigation between screens
     - Manage application state
-    - Coordinate file operations
+    - Coordinate file operations (open, save, recent)
+    - Delegate layer operations to AppState and Services
     """
 
     # ==========================================================
@@ -36,19 +36,14 @@ class AppController:
 
     def load_home(self):
         """Load Home screen and show recent projects."""
-
         recent_paths = self.recent_manager.get_recent()
 
         recent_projects = [
-            {
-                "path": path,
-                "name": os.path.basename(path)
-            }
+            {"path": path, "name": os.path.basename(path)}
             for path in recent_paths
         ]
 
         self.layout.show("home")
-
         home_screen = self.layout.current_screen
         home_screen.set_recent(recent_projects)
 
@@ -57,19 +52,16 @@ class AppController:
     # ==========================================================
 
     def request_new_project(self):
-        """Open dialog to create a new project."""
+        """Open dialog to create a new blank project."""
         NewProjectDialog(self.root, self._create_project)
 
     def request_open(self):
         """Open project using file dialog."""
-
         document, path = self.file_service.open_image()
-
         if not document:
             return
 
         self.state.set_format(document)
-
         if path:
             self.recent_manager.add_recent(path)
 
@@ -77,13 +69,10 @@ class AppController:
 
     def request_open_recent(self, path):
         """Open a project from recent list."""
-
         try:
             document = self.file_service.open_from_path(path)
-
             self.state.set_format(document)
             self.recent_manager.add_recent(path)
-
             self._go_to_editor(document)
 
         except FileNotFoundError:
@@ -95,20 +84,16 @@ class AppController:
 
     def request_save(self):
         """Save current project."""
-
         document = self.state.get_format()
-
         if not document:
             return
 
         path = self.file_service.save_project(document)
-
         if path:
             self.recent_manager.add_recent(path)
 
     def request_exit(self):
         """Handle exit request."""
-
         if self.state.has_format():
             ConfirmExitDialog(self.root, self.root.destroy)
         else:
@@ -116,10 +101,7 @@ class AppController:
 
     def request_back_home(self):
         """Return to home screen."""
-
-        self.state.clear_project()
         self.state.clear_format()
-
         self.load_home()
 
     # ==========================================================
@@ -127,21 +109,26 @@ class AppController:
     # ==========================================================
 
     def _create_project(self, width, height):
-        """Create a new document."""
+        """
+        Create a new blank document and open editor.
+        Always includes a background layer and an initial editable layer.
+        """
+        document = self.image_service.create_blank_format(width, height)
 
-        document = ImageFormat(width, height)
+        # Add initial editable transparent layer
+        document.add_layer(name="Layer 1")
 
         self.state.set_format(document)
+        self.state.set_selected_layer(len(document.get_layers()) - 1)
 
         self._go_to_editor(document)
 
     def _go_to_editor(self, document):
         """Navigate to editor and load project."""
-
         self.layout.show("editor")
-
         self.layout.load_project_into_editor(document)
 
+        # Initial refresh
         self.refresh_layers()
         self.refresh_canvas()
 
@@ -151,17 +138,13 @@ class AppController:
 
     def refresh_canvas(self):
         """Refresh canvas if current screen supports it."""
-
         screen = self.layout.current_screen
-
         if screen and hasattr(screen, "refresh"):
             screen.refresh()
 
     def refresh_layers(self):
         """Refresh layer panel if current screen supports it."""
-
         screen = self.layout.current_screen
-
         if screen and hasattr(screen, "refresh_layers"):
             screen.refresh_layers()
 
@@ -175,12 +158,9 @@ class AppController:
 
     def get_layers(self):
         """Return document layers."""
-
         document = self.get_document()
-
         if not document:
             return []
-
         return document.get_layers()
 
     # ==========================================================
@@ -188,27 +168,25 @@ class AppController:
     # ==========================================================
 
     def add_new_layer(self, name=None):
-        """Add a new layer to the document."""
-
         document = self.get_document()
-
         if not document:
             return
 
         if name is None:
             name = f"Layer {len(document.get_layers()) + 1}"
 
-        document.add_layer(name=name)
+        # Insert new layer after selected index
+        index = self.state.selected_layer_index
+        new_layer = document.add_layer(name=name)
+        document.layers.insert(index + 1, new_layer)
 
-        self.state.set_selected_layer(len(document.get_layers()) - 1)
+        self.state.set_selected_layer(index + 1)
 
         self.refresh_layers()
         self.refresh_canvas()
 
     def select_layer(self, index):
         """Select layer by index."""
-
         self.state.set_selected_layer(index)
-
         self.refresh_layers()
         self.refresh_canvas()
