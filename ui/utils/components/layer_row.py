@@ -134,5 +134,6 @@ class LayerRow(tk.Frame):
 
     def _on_destroy(self, event):
         """Cleanup to avoid invalid command errors when widget is destroyed."""
+
         self.check = None
         self.name_btn = None

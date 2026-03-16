@@ -25,11 +25,10 @@ class AppRoot:
         self.root.title("KreoPix")
         self.root.geometry("1000x700")
         self.root.minsize(800, 600)
-        # Window Icon
-        self.root.iconbitmap("assets/app/Logo.ico")
 
         # Window Icon
-        self.root.iconbitmap("assets/app/logo.png")
+        self.root.iconbitmap("assets/app/LOGO.ico")
+
         # Core Layer
         self.state = AppState()
         self.recent_manager = RecentManager()

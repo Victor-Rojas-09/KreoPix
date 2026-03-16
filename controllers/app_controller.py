@@ -36,6 +36,7 @@ class AppController:
 
     def load_home(self):
         """Load Home screen and show recent projects."""
+
         recent_paths = self.recent_manager.get_recent()
 
         recent_projects = [
@@ -53,10 +54,12 @@ class AppController:
 
     def request_new_project(self):
         """Open dialog to create a new blank project."""
+
         NewProjectDialog(self.root, self._create_project)
 
     def request_open(self):
         """Open project using file dialog."""
+
         document, path = self.file_service.open_image()
         if not document:
             return
@@ -69,6 +72,7 @@ class AppController:
 
     def request_open_recent(self, path):
         """Open a project from recent list."""
+
         try:
             document = self.file_service.open_from_path(path)
             self.state.set_format(document)
@@ -84,16 +88,19 @@ class AppController:
 
     def request_save(self):
         """Save current project."""
+
         document = self.state.get_format()
         if not document:
             return
 
         path = self.file_service.save_project(document)
+
         if path:
             self.recent_manager.add_recent(path)
 
     def request_exit(self):
         """Handle exit request."""
+
         if self.state.has_format():
             ConfirmExitDialog(self.root, self.root.destroy)
         else:
@@ -101,6 +108,7 @@ class AppController:
 
     def request_back_home(self):
         """Return to home screen."""
+
         self.state.clear_format()
         self.load_home()
 
@@ -113,6 +121,7 @@ class AppController:
         Create a new blank document and open editor.
         Always includes a background layer and an initial editable layer.
         """
+
         document = self.image_service.create_blank_format(width, height)
 
         # Add initial editable transparent layer
@@ -125,6 +134,7 @@ class AppController:
 
     def _go_to_editor(self, document):
         """Navigate to editor and load project."""
+
         self.layout.show("editor")
         self.layout.load_project_into_editor(document)
 
@@ -138,12 +148,14 @@ class AppController:
 
     def refresh_canvas(self):
         """Refresh canvas if current screen supports it."""
+
         screen = self.layout.current_screen
         if screen and hasattr(screen, "refresh"):
             screen.refresh()
 
     def refresh_layers(self):
         """Refresh layer panel if current screen supports it."""
+
         screen = self.layout.current_screen
         if screen and hasattr(screen, "refresh_layers"):
             screen.refresh_layers()
@@ -154,10 +166,12 @@ class AppController:
 
     def get_document(self):
         """Return current document."""
+
         return self.state.get_format()
 
     def get_layers(self):
         """Return document layers."""
+
         document = self.get_document()
         if not document:
             return []
@@ -168,7 +182,10 @@ class AppController:
     # ==========================================================
 
     def add_new_layer(self, name=None):
+        """Add a new layer by position and index."""
+
         document = self.get_document()
+
         if not document:
             return
 
@@ -178,15 +195,16 @@ class AppController:
         # Insert new layer after selected index
         index = self.state.selected_layer_index
         new_layer = document.add_layer(name=name)
-        document.layers.insert(index + 1, new_layer)
 
         self.state.set_selected_layer(index + 1)
 
+        # Refresh the canvas after adding
         self.refresh_layers()
         self.refresh_canvas()
 
     def select_layer(self, index):
         """Select layer by index."""
+
         self.state.set_selected_layer(index)
         self.refresh_layers()
         self.refresh_canvas()

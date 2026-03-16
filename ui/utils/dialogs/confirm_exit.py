@@ -36,5 +36,7 @@ class ConfirmExitDialog(tk.Toplevel):
         ).pack(side="right", padx=20, pady=10)
 
     def _confirm(self):
+        """Confirm exit of the window to destroy."""
+
         self.on_confirm()
         self.destroy()

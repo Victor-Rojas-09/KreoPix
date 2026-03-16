@@ -20,31 +20,42 @@ class LayersPanel(tk.Frame):
 
     def refresh_layers(self, state):
         """Refresh layer list when state changes."""
+
         layers = state.get_layers()
         self.load_layers(layers)
 
     # --------------------------------------------------
     # Layout
     # --------------------------------------------------
+
     def _configure_grid(self):
+        """Configure grid of the panel."""
+
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
 
     def _build_header(self):
+        """Build the header of the panel."""
+
         header = tk.Frame(self, bg="#555")
         header.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         header.columnconfigure(1, weight=1)
 
+        # Selection a mode
         self.mode_button = tk.Label(header, text="Normal", bg="#666", fg="white", padx=8, pady=4, cursor="hand2")
         self.mode_button.grid(row=0, column=0, padx=(5, 15))
 
+        # Slider for the opacity manage
         self.opacity_slider = BlueSlider(header, width=100, height=16, command=self._on_opacity_change)
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
+        # Button for add a new layer
         add_btn = tk.Button(header, text="+ Layer", bg="#777", fg="white", padx=5, pady=2, command=self._on_add_layer)
         add_btn.grid(row=0, column=2, padx=(5, 5))
 
     def _build_layers_area(self):
+        """Build the layers part in the grid."""
+
         self.layers_container = tk.Frame(self, bg="#555")
         self.layers_container.grid(row=1, column=0, sticky="nsew")
         self.layers_container.columnconfigure(0, weight=1)
@@ -67,11 +78,15 @@ class LayersPanel(tk.Frame):
     # Layer controls
     # --------------------------------------------------
     def _on_opacity_change(self, value):
+        """Change the opacity of the layer."""
+
         layer = self.controller.state.get_selected_layer()
+
         if layer:
             self.controller.state.update_layer_opacity(layer, value)
 
     def _on_add_layer(self):
         """Request controller to add new layer."""
+
         if self.controller:
             self.controller.add_new_layer()
