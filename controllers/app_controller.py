@@ -194,7 +194,7 @@ class AppController:
 
         # Insert new layer after selected index
         index = self.state.selected_layer_index
-        new_layer = document.add_layer(name=name)
+        document.add_layer(name=name)
 
         self.state.set_selected_layer(index + 1)
 
@@ -208,3 +208,9 @@ class AppController:
         self.state.set_selected_layer(index)
         self.refresh_layers()
         self.refresh_canvas()
+
+    def remove_selected_layer(self):
+        """Remove currently selected layer via state."""
+
+        if self.state:
+            self.state.remove_selected_layer()
