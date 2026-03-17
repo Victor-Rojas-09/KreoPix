@@ -98,3 +98,30 @@ class AppState:
         """Update visibility of a layer and notify UI."""
         layer.visible = visible
         self._notify()
+
+    def update_layer_name(self, layer, name: str):
+        """Update layer name and notify UI."""
+        if layer:
+            layer.name = name
+            self._notify()
+
+    def remove_selected_layer(self):
+        """Remove the currently selected layer and update selection."""
+
+        layers = self.get_layers()
+
+        if not layers:
+            return
+
+        index = self.selected_layer_index
+
+        # Delete layer
+        layers.pop(index)
+
+        # Adjust selection index
+        if layers:
+            self.selected_layer_index = max(0, min(index, len(layers) - 1))
+        else:
+            self.selected_layer_index = 0
+
+        self._notify()
