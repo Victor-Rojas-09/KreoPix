@@ -19,10 +19,12 @@ class LayersPanel(tk.Frame):
             self.controller.state.add_listener(self.refresh_layers)
 
     def refresh_layers(self, state):
-        """Refresh layer list when state changes."""
+        """Efficient refresh of layer list."""
 
         layers = state.get_layers()
-        self.load_layers(layers)
+        selected_index = state.selected_layer_index
+
+        self._update_layers(layers, selected_index)
 
     # --------------------------------------------------
     # Layout
@@ -50,8 +52,12 @@ class LayersPanel(tk.Frame):
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
         # Button for add a new layer
-        add_btn = tk.Button(header, text="+ Layer", bg="#777", fg="white", padx=5, pady=2, command=self._on_add_layer)
-        add_btn.grid(row=0, column=2, padx=(5, 5))
+        add_btn = tk.Button(header, text="+", bg="#777", fg="white", padx=5, pady=2, command=self._on_add_layer)
+        add_btn.grid(row=0, column=2, padx=(5, 2))
+
+        # Button for remove selected layer
+        remove_btn = tk.Button(header, text="-", bg="#777", fg="white", padx=5, pady=2, command=self._on_remove_layer)
+        remove_btn.grid(row=0, column=3, padx=(2, 5))
 
     def _build_layers_area(self):
         """Build the layers part in the grid."""
@@ -90,3 +96,35 @@ class LayersPanel(tk.Frame):
 
         if self.controller:
             self.controller.add_new_layer()
+
+    def _update_layers(self, layers, selected_index):
+        """Efficient diff-based update (no full re-render)."""
+
+        current = len(self.layer_rows)
+        target = len(layers)
+
+        # Fill in missing rows
+        for _ in range(current, target):
+            row = LayerRow(self.layers_container, layers[0], 0, self.controller)
+            row.pack(fill="x", padx=5, pady=2)
+            self.layer_rows.append(row)
+
+        # Remove extra rows
+        for _ in range(target, current):
+            row = self.layer_rows.pop()
+            row.destroy()
+
+        # Update content
+        reversed_layers = list(reversed(list(enumerate(layers))))
+
+        for visual_index, (real_index, layer) in enumerate(reversed_layers):
+            row = self.layer_rows[visual_index]
+
+            row.update(layer, real_index)
+            row.set_selected(real_index == selected_index)
+
+    def _on_remove_layer(self):
+        """Request controller to remove selected layer."""
+
+        if self.controller:
+            self.controller.remove_selected_layer()
