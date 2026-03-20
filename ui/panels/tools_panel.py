@@ -1,5 +1,11 @@
 import tkinter as tk
 
+from services.brushes.presets import (
+    create_hard_brush,
+    create_eraser
+)
+
+
 class ToolsPanel(tk.Frame):
     """Left panel containing editor tools."""
 
@@ -23,19 +29,25 @@ class ToolsPanel(tk.Frame):
         tk.Button(self, text="Select", command=self._select_select).pack(fill="x", pady=5)
 
     def _select_brush(self):
-        if self.controller:
-            self.controller.state.current_tool = "brush"
+        """Select painting tool with default brush."""
 
-            from services.brushes.normal_brush import NormalBrush
-            self.controller.state.set_brush(NormalBrush())
+        if self.controller:
+            self.controller.state.set_tool("brush")
+
+            brush = create_hard_brush((0, 0, 0, 255))
+            self.controller.state.set_brush(brush)
 
     def _select_eraser(self):
-        if self.controller:
-            self.controller.state.current_tool = "brush"
+        """Select eraser tool."""
 
-            from services.brushes.eraser_brush import EraserBrush
-            self.controller.state.set_brush(EraserBrush())
+        if self.controller:
+            self.controller.state.set_tool("brush")
+
+            brush = create_eraser()
+            self.controller.state.set_brush(brush)
 
     def _select_select(self):
+        """Select selection tool."""
+
         if self.controller:
-            self.controller.state.current_tool = "select"
+            self.controller.state.set_tool("select")

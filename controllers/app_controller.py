@@ -4,6 +4,7 @@ import os
 from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
 from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
+from services.brushes.stroke import BrushPoint
 
 class AppController:
     """
@@ -214,6 +215,9 @@ class AppController:
         if self.state:
             self.state.remove_selected_layer()
 
+    # ==========================================================
+    # BRUSH OPERATIONS
+    # ==========================================================
     def handle_paint_stroke(self, points):
         """To handle paint strokes."""
 
@@ -229,14 +233,16 @@ class AppController:
         if not brush:
             return
 
-        brush.apply_stroke(layer.image, points)
+        brush_points = [
+            BrushPoint(x=p[0], y=p[1], pressure=1.0)
+            for p in points
+        ]
+
+        brush.apply_stroke(layer.image, brush_points)
 
         self.state._notify()
         self.refresh_canvas()
 
-    # ==========================================================
-    # BRUSH OPERATIONS
-    # ==========================================================
     def request_update_brush_size(self, size: int):
         """Update brush size via AppState."""
 

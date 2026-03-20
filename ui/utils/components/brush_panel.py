@@ -1,8 +1,9 @@
-# ui/utils/components/brush_panel.py
 import tkinter as tk
-from services.brushes.normal_brush import NormalBrush
-from services.brushes.eraser_brush import EraserBrush
-from services.brushes.opacity_brush import OpacityBrush
+from services.brushes.presets import (
+    create_airbrush,
+    create_hard_brush,
+    create_eraser
+)
 
 class BrushPanel(tk.Frame):
     """Brush selection panel with icons and sliders."""
@@ -13,23 +14,28 @@ class BrushPanel(tk.Frame):
         self._build()
 
     def _build(self):
+        """Build the panel."""
+
         tk.Label(self, text="Brushes", bg="#666", fg="white").pack(pady=5)
 
-        # Brush buttons
         brushes = [
-            {"class": NormalBrush, "name": "Normal", "icon": None},
-            {"class": EraserBrush, "name": "Eraser", "icon": None},
-            {"class": OpacityBrush, "name": "Opacity", "icon": None},
+            {"factory": create_hard_brush, "name": "Hard"},
+            {"factory": create_airbrush, "name": "Airbrush"},
+            {"factory": create_eraser, "name": "Eraser"},
         ]
 
         for b in brushes:
             btn = tk.Button(
                 self,
                 text=b["name"],
-                command=lambda cls=b["class"]: self._select_brush(cls)
+                command=lambda f=b["factory"]: self._select_brush(f)
             )
             btn.pack(pady=3, fill="x")
 
-    def _select_brush(self, brush_class):
-        brush = brush_class()
+    def _select_brush(self, factory):
+        """Select a brush from the services."""
+
+        color = (0, 0, 0, 255)
+
+        brush = factory(color) if factory != create_eraser else factory()
         self.controller.state.set_brush(brush)
