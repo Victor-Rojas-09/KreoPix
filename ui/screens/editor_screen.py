@@ -62,6 +62,8 @@ class EditorScreen(tk.Frame):
     # ==================================================
 
     def load_project(self, image_format):
+        """Load the project."""
+
         self.controller.state.set_format(image_format)
         # No need to call load_layers manually, listeners handle it
         self.refresh()
@@ -71,6 +73,8 @@ class EditorScreen(tk.Frame):
     # ==================================================
 
     def refresh(self):
+        """refresh the image."""
+
         if not self.controller.state.has_format():
             return
 

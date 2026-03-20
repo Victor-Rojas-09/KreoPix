@@ -15,6 +15,7 @@ class RightSidebar(tk.Frame):
 
     def _configure_grid(self):
         """Configure sidebar layout."""
+
         self.rowconfigure(0, weight=3)
         self.rowconfigure(1, weight=2)
         self.rowconfigure(2, weight=1)
@@ -22,11 +23,12 @@ class RightSidebar(tk.Frame):
 
     def _build_panels(self):
         """Create sidebar panels."""
-        self.color_panel = ColorPanel(self)
+
+        self.color_panel = ColorPanel(self, self.controller)
         self.color_panel.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         self.layers_panel = LayersPanel(self, controller=self.controller)
         self.layers_panel.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-        self.brush_panel = BrushPanel(self)
+        self.brush_panel = BrushPanel(self, self.controller)
         self.brush_panel.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)

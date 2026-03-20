@@ -1,21 +1,26 @@
 from core.image.image_format import ImageFormat
+from services.brushes.normal_brush import NormalBrush
 
 class AppState:
     """Global application state managing document, layers and tools."""
 
     def __init__(self):
         """Initialize with no document and no selected layer."""
+
         self.current_format: ImageFormat | None = None
-        self.current_project = None  # Legacy compatibility
+        self.current_project = None
         self.selected_layer_index: int = 0
         self.current_tool = None
         self._listeners = []
 
+        self.current_brush = NormalBrush()
+
     # -------------------------
-    # Document / Project
+    # Document
     # -------------------------
     def set_format(self, image_format: ImageFormat):
         """Set current document and reset selected layer."""
+
         self.current_format = image_format
         self.selected_layer_index = 0
         self.current_project = image_format
@@ -23,10 +28,12 @@ class AppState:
 
     def get_format(self) -> ImageFormat | None:
         """Return current document."""
+
         return self.current_format
 
     def clear_format(self):
         """Clear current document."""
+
         self.current_format = None
         self.selected_layer_index = 0
         self.current_project = None
@@ -62,12 +69,14 @@ class AppState:
     # Tools
     # -------------------------
     def set_tool(self, tool):
-        """Set active tool (brush, selector, etc.)."""
+        """Set active tool."""
+
         self.current_tool = tool
         self._notify()
 
     def get_tool(self):
         """Return active tool."""
+
         return self.current_tool
 
     # -------------------------
@@ -78,7 +87,7 @@ class AppState:
         return self.current_format is not None
 
     # -------------------------
-    # UI Listeners
+    # UI
     # -------------------------
     def add_listener(self, callback):
         """Register a UI listener for state changes."""
@@ -125,3 +134,25 @@ class AppState:
             self.selected_layer_index = 0
 
         self._notify()
+
+    def set_brush(self, brush):
+        self.current_brush = brush
+        self._notify()
+
+    def get_brush(self):
+        return self.current_brush
+
+    def update_brush_size(self, size: int):
+        if self.current_brush:
+            self.current_brush.size = max(1, int(size))
+            self._notify()
+
+    def update_brush_opacity(self, opacity: int):
+        if self.current_brush:
+            self.current_brush.opacity = max(0, min(100, int(opacity)))
+            self._notify()
+
+    def update_brush_color(self, color: tuple):
+        if self.current_brush:
+            self.current_brush.color = color
+            self._notify()

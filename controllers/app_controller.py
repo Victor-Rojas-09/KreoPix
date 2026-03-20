@@ -5,7 +5,6 @@ from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
 from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
 
-
 class AppController:
     """
     Main application controller.
@@ -214,3 +213,41 @@ class AppController:
 
         if self.state:
             self.state.remove_selected_layer()
+
+    def handle_paint_stroke(self, points):
+        """To handle paint strokes."""
+
+        document = self.state.get_format()
+        if not document:
+            return
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        brush = self.state.get_brush()
+        if not brush:
+            return
+
+        brush.apply_stroke(layer.image, points)
+
+        self.state._notify()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # BRUSH OPERATIONS
+    # ==========================================================
+    def request_update_brush_size(self, size: int):
+        """Update brush size via AppState."""
+
+        self.state.update_brush_size(size)
+
+    def request_update_brush_opacity(self, opacity: int):
+        """Update brush opacity via AppState."""
+
+        self.state.update_brush_opacity(opacity)
+
+    def request_update_brush_color(self, color_tuple: tuple):
+        """Update brush color via AppState."""
+
+        self.state.update_brush_color(color_tuple)
