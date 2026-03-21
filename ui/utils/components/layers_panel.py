@@ -44,8 +44,14 @@ class LayersPanel(tk.Frame):
         header.columnconfigure(1, weight=1)
 
         # Selection a mode
-        self.mode_button = tk.Label(header, text="Normal", bg="#666", fg="white", padx=8, pady=4, cursor="hand2")
+        self.mode_var = tk.StringVar(value="Normal")
+        self.mode_button = tk.Menubutton(header, textvariable=self.mode_var, bg="#666", fg="white", relief="raised")
         self.mode_button.grid(row=0, column=0, padx=(5, 15))
+
+        menu = tk.Menu(self.mode_button, tearoff=0)
+        for mode in ["Normal", "grayscale_avg", "grayscale_lum", "laplacian", "canny"]:
+            menu.add_command(label=mode, command=lambda m=mode: self._on_mode_change(m))
+        self.mode_button.config(menu=menu)
 
         # Slider for the opacity manage
         self.opacity_slider = BlueSlider(header, width=100, height=16, command=self._on_opacity_change)
@@ -128,3 +134,11 @@ class LayersPanel(tk.Frame):
 
         if self.controller:
             self.controller.remove_selected_layer()
+
+    def _on_mode_change(self, mode):
+        """Change the mode of the layer."""
+
+        layer = self.controller.state.get_selected_layer()
+        if layer:
+            self.controller.request_set_layer_mode(layer, mode)
+            self.mode_var.set(mode)

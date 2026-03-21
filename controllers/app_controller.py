@@ -257,3 +257,11 @@ class AppController:
         """Update brush color via AppState."""
 
         self.state.update_brush_color(color_tuple)
+
+    def request_set_layer_mode(self, layer, mode: str):
+        """Update the mode of a layer and notify to AppState."""
+
+        if layer:
+            layer.mode = mode
+            self.state._notify()
+            self.refresh_canvas()

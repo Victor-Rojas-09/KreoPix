@@ -12,16 +12,16 @@ class Layer:
         self.name = name
         self.visible = True
         self.opacity = 100
+        self.mode = "Normal"
 
     def get_image_with_opacity(self):
-        """
-        Return the image with applied opacity if visible.
-        If layer is hidden, return None.
-        """
+        """Return the image with applied opacity if visible."""
+
         if not self.visible:
             return None
 
         img = self.image.copy()
+
         if self.opacity < 100:
             alpha = img.getchannel("A")
             alpha = alpha.point(lambda p: int(p * (self.opacity / 100)))

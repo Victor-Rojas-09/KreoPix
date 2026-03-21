@@ -1,5 +1,6 @@
 from PIL import Image
 from core.image.layer import Layer
+from services.filters.blend_service import BlendService
 
 class ImageFormat:
     """Editable document with multiple layers."""
@@ -42,9 +43,29 @@ class ImageFormat:
         return base
 
     def add_layer(self, name="Layer"):
+        """Add a new layer to the document."""
+
         new_layer = Layer(
-            Image.new("RGBA", (self.width, self.height), (255, 255, 255, 255)),
+            Image.new("RGBA", (self.width, self.height), (0, 0, 0, 0)),
             name=name
         )
         self.layers.append(new_layer)
         return new_layer
+
+    def composite(self):
+        """Select the method shown in the image."""
+
+        blend_service = BlendService()
+        base = None
+
+        for layer in self.layers:
+            if not layer.visible:
+                continue
+            img = layer.get_image_with_opacity()
+            if img:
+                if base is None:
+                    base = img.copy()
+                else:
+                    base = blend_service.blend(base, img, layer.mode)
+
+        return base if base else None
