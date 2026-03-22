@@ -49,7 +49,7 @@ class LayersPanel(tk.Frame):
         self.mode_button.grid(row=0, column=0, padx=(5, 15))
 
         menu = tk.Menu(self.mode_button, tearoff=0)
-        for mode in ["Normal", "grayscale_avg", "grayscale_lum", "laplacian", "canny"]:
+        for mode in ["Normal", "grayscale_avg", "grayscale_lum", "laplacian", "canny", "gaussian_blur"]:
             menu.add_command(label=mode, command=lambda m=mode: self._on_mode_change(m))
         self.mode_button.config(menu=menu)
 
