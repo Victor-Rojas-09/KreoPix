@@ -4,7 +4,8 @@ from services.filters.filter_library import (
     GrayscaleAverage,
     GrayscaleLuminosity,
     LaplacianEdge,
-    CannyEdge
+    CannyEdge,
+    GaussianBlur
 )
 
 class BlendService:
@@ -34,6 +35,11 @@ class BlendService:
         elif mode == "canny":
             arr = pil_to_numpy(top)
             out = CannyEdge().apply(arr)
+            return Image.alpha_composite(bottom, numpy_to_pil(out))
+
+        elif mode == "gaussian_blur":
+            arr = pil_to_numpy(top)
+            out = GaussianBlur().apply(arr)
             return Image.alpha_composite(bottom, numpy_to_pil(out))
 
         else:
