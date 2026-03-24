@@ -4,7 +4,7 @@ import os
 from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
 from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
-from services.brushes.stroke import BrushPoint
+from core.brush.brush_core import BrushPoint
 
 class AppController:
     """
@@ -219,7 +219,7 @@ class AppController:
     # BRUSH OPERATIONS
     # ==========================================================
     def handle_paint_stroke(self, points):
-        """To handle paint strokes."""
+        """Select pixels from the canvas and apply the stroke."""
 
         document = self.state.get_format()
         if not document:
@@ -233,35 +233,36 @@ class AppController:
         if not brush:
             return
 
-        brush_points = [
-            BrushPoint(x=p[0], y=p[1], pressure=1.0)
-            for p in points
-        ]
+        # Convert raw points to BrushPoint
+        brush_points = [BrushPoint(x=p[0], y=p[1], pressure=1.0) for p in points]
 
-        brush.apply_stroke(layer.image, brush_points)
+        brush.apply_stroke(layer.image, brush_points, getattr(brush, "brush_color", (0, 0, 0, 255)))
 
         self.state._notify()
         self.refresh_canvas()
 
     def request_update_brush_size(self, size: int):
-        """Update brush size via AppState."""
+        """Update brush size."""
 
         self.state.update_brush_size(size)
 
     def request_update_brush_opacity(self, opacity: int):
-        """Update brush opacity via AppState."""
+        """Update the brush opacity."""
 
         self.state.update_brush_opacity(opacity)
 
     def request_update_brush_color(self, color_tuple: tuple):
-        """Update brush color via AppState."""
+        """Update the brush color."""
 
         self.state.update_brush_color(color_tuple)
 
-    def request_set_layer_mode(self, layer, mode: str):
-        """Update the mode of a layer and notify to AppState."""
+    def request_set_tool(self, tool_name: str):
+        """Change active tool."""
 
-        if layer:
-            layer.mode = mode
-            self.state._notify()
-            self.refresh_canvas()
+        self.state.set_tool(tool_name)
+
+    def request_set_brush_by_preset(self, preset_factory, color=None):
+        """Create a brush from a preset and assign it to the state."""
+
+        brush = preset_factory(color) if color else preset_factory()
+        self.state.set_brush(brush)

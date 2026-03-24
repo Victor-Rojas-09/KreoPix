@@ -1,5 +1,5 @@
 from core.image.image_format import ImageFormat
-from services.brushes.presets import create_hard_brush
+from core.brush.presets import create_hard_brush
 
 
 class AppState:
@@ -150,34 +150,35 @@ class AppState:
     # Brushes
     # -------------------------
     def get_brush(self):
-        """Get the active brush."""
+        """Get the current brush."""
 
         return self.current_brush
 
     def set_brush(self, brush):
-        """Set the active brush."""
+        """Set the current brush."""
 
         self.current_brush = brush
         self._notify()
 
     def update_brush_size(self, size: int):
-        """Set brush size (min 1)."""
+        """Update the current brush size."""
 
         if self.current_brush:
-            self.current_brush.dynamics.base_size = max(1, int(size))
+            self.current_brush.brush_type.base_size = max(1, int(size))
             self._notify()
 
     def update_brush_opacity(self, opacity: int):
-        """Set brush opacity (0–100)."""
+
+        """Update the current brush opacity."""
 
         if self.current_brush:
-            self.current_brush.dynamics.base_opacity = max(0, min(100, int(opacity)))
+            self.current_brush.brush_type.base_opacity = max(0, min(100, int(opacity)))
             self._notify()
 
     def update_brush_color(self, color: tuple):
-        """Set brush color and clear cache."""
+        """Update the current brush color."""
 
         if self.current_brush:
-            self.current_brush.tip.color = color
-            self.current_brush.tip._cache.clear()
+            # Save the color for the brush
+            self.current_brush.brush_color = color
             self._notify()
