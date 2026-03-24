@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from services.brushes.presets import (
+from core.brush.presets import (
     create_hard_brush,
     create_eraser
 )
@@ -31,23 +31,35 @@ class ToolsPanel(tk.Frame):
     def _select_brush(self):
         """Select painting tool with default brush."""
 
-        if self.controller:
-            self.controller.state.set_tool("brush")
+        if not self.controller:
+            return
 
-            brush = create_hard_brush((0, 0, 0, 255))
-            self.controller.state.set_brush(brush)
+        # Set as active tool
+        self.controller.state.set_tool("brush")
+
+        color = (0, 0, 0, 255)
+
+        brush = create_hard_brush(color)
+
+        # Assign to state
+        self.controller.state.set_brush(brush)
 
     def _select_eraser(self):
         """Select eraser tool."""
 
-        if self.controller:
-            self.controller.state.set_tool("brush")
+        if not self.controller:
+            return
 
-            brush = create_eraser()
-            self.controller.state.set_brush(brush)
+        self.controller.state.set_tool("brush")
+
+        brush = create_eraser()
+
+        self.controller.state.set_brush(brush)
 
     def _select_select(self):
         """Select selection tool."""
 
-        if self.controller:
-            self.controller.state.set_tool("select")
+        if not self.controller:
+            return
+
+        self.controller.state.set_tool("select")

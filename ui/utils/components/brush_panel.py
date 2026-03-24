@@ -1,7 +1,7 @@
 import tkinter as tk
 import os
 
-from services.brushes.presets import (
+from core.brush.presets import (
     create_airbrush,
     create_hard_brush,
     create_eraser
