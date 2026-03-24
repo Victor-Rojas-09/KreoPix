@@ -54,7 +54,14 @@ class LayersPanel(tk.Frame):
         self.mode_button.config(menu=menu)
 
         # Slider for the opacity manage
-        self.opacity_slider = BlueSlider(header, width=100, height=16, command=self._on_opacity_change)
+        self.opacity_slider = BlueSlider(
+            header,
+            min_value=0,
+            max_value=100,
+            initial_value=100,
+            command=self._on_opacity_change
+        )
+
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
         # Button for add a new layer
