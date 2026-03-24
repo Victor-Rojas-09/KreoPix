@@ -46,7 +46,7 @@ class CanvasPanel(tk.Frame):
         self.top_inner = tk.Frame(self.top_bar, bg="#333")
         self.top_inner.pack(anchor="center")
 
-        tk.Label(self.top_inner, text="Opacity", bg="#333", fg="white").pack(side="left", padx=5)
+        tk.Label(self.top_inner, text="Opacity", bg="#333", fg="white").pack(side="left", padx=8)
 
         self.brush_opacity_slider = BlueSlider(
             self.top_inner,
@@ -56,18 +56,18 @@ class CanvasPanel(tk.Frame):
             command=self._on_opacity_change
         )
 
-        self.brush_opacity_slider.pack(side="left", padx=5)
+        self.brush_opacity_slider.pack(side="left", padx=5, pady=10)
 
-        tk.Label(self.top_inner, text="Size", bg="#333", fg="white").pack(side="left", padx=5)
+        tk.Label(self.top_inner, text="Size", bg="#333", fg="white").pack(side="left", padx=8)
 
         self.brush_size_slider = BlueSlider(
             self.top_inner,
             min_value=1,
-            max_value=1500,
-            initial_value=200,
+            max_value=400,
+            initial_value=70,
             command=self._on_size_change
         )
-        self.brush_size_slider.pack(side="left", padx=5)
+        self.brush_size_slider.pack(side="left", padx=5, pady=10)
 
     def _build_canvas(self):
         """Create drawing canvas and bind mouse events."""
