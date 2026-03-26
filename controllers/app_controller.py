@@ -143,7 +143,7 @@ class AppController:
         self.refresh_canvas()
 
     # ==========================================================
-    # CANVAS / UI REFRESH
+    # UI REFRESH
     # ==========================================================
 
     def refresh_canvas(self):
@@ -190,7 +190,7 @@ class AppController:
             return
 
         if name is None:
-            name = f"Layer {len(document.get_layers()) + 1}"
+            name = f"Layer {len(document.get_layers())}"
 
         # Insert new layer after selected index
         index = self.state.selected_layer_index
@@ -218,6 +218,7 @@ class AppController:
     # ==========================================================
     # BRUSH OPERATIONS
     # ==========================================================
+
     def handle_paint_stroke(self, points):
         """Select pixels from the canvas and apply the stroke."""
 

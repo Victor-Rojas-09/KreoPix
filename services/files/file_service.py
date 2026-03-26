@@ -7,6 +7,7 @@ class FileService:
 
     def open_image(self):
         """Open an image using a file dialog and wrap it in ImageFormat."""
+
         path = filedialog.askopenfilename(
             title="Open Image",
             filetypes=[
@@ -17,6 +18,7 @@ class FileService:
                 ("All Files", "*.*"),
             ]
         )
+
         if not path:
             return None, None
         try:
@@ -28,6 +30,7 @@ class FileService:
 
     def open_from_path(self, path):
         """Open an image directly from a known path and wrap in ImageFormat."""
+
         try:
             return ImageService.open_image_format(path)
         except Exception as e:
@@ -36,8 +39,10 @@ class FileService:
 
     def save_project(self, image_format: ImageFormat):
         """Save the current ImageFormat to disk as PNG/JPEG."""
+
         if not image_format:
             return None
+
         path = filedialog.asksaveasfilename(
             title="Save Project",
             defaultextension=".png",
@@ -47,6 +52,7 @@ class FileService:
                 ("All Files", "*.*"),
             ]
         )
+
         if not path:
             return None
         try:

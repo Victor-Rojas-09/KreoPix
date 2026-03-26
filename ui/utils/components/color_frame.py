@@ -119,7 +119,13 @@ class ColorTabFrame(tk.Frame):
     def _add_color_button(self, hex_color):
         """Add a button for a color swatch."""
 
-        btn = tk.Button(self.color_bar, bg=hex_color, width=2, height=1, command=lambda c=hex_color: self._select_color(c))
+        btn = tk.Button(
+            self.color_bar,
+            bg=hex_color,
+            width=2,
+            height=1,
+            command=lambda c=hex_color: self._select_color(c)
+        )
 
         btn.pack(side="left", padx=2)
 

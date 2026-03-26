@@ -22,9 +22,10 @@ class AppState:
 
         self.current_brush = create_hard_brush((0, 0, 0, 255))
 
-    # -------------------------
+    # ==========================================================
     # Document
-    # -------------------------
+    # ==========================================================
+
     def get_format(self) -> ImageFormat | None:
         """Get the active document."""
 
@@ -50,9 +51,10 @@ class AppState:
         """Return True if a document is loaded."""
         return self.current_format is not None
 
-    # -------------------------
+    # ==========================================================
     # UI
-    # -------------------------
+    # ==========================================================
+
     def add_listener(self, callback):
         """Register a state change listener."""
 
@@ -61,12 +63,13 @@ class AppState:
     def _notify(self):
         """Notify all listeners."""
 
-        for cb in self._listeners:
-            cb(self)
+        for callback in self._listeners:
+            callback(self)
 
-    # -------------------------
+    # ==========================================================
     # Tools
-    # -------------------------
+    # ==========================================================
+
     def set_tool(self, tool):
         """Get the active tool."""
 
@@ -78,29 +81,35 @@ class AppState:
 
         return self.current_tool
 
-    # -------------------------
+    # ==========================================================
     # Layers
-    # -------------------------
+    # ==========================================================
+
     def get_layers(self):
         """Get all layers or an empty list."""
 
         if not self.current_format:
             return []
+
         return self.current_format.layers
 
     def get_selected_layer(self):
         """Get the currently selected layer."""
 
         layers = self.get_layers()
+
         if not layers:
             return None
+
         index = max(0, min(self.selected_layer_index, len(layers) - 1))
+
         return layers[index]
 
     def set_selected_layer(self, index: int):
         """Get the selected layer index."""
 
         layers = self.get_layers()
+
         if not layers:
             self.selected_layer_index = 0
         else:
@@ -109,6 +118,7 @@ class AppState:
 
     def update_layer_opacity(self, layer, opacity: int):
         """Update the opacity of a layer."""
+
         layer.opacity = max(0, min(opacity, 100))
         self._notify()
 
@@ -146,9 +156,10 @@ class AppState:
 
         self._notify()
 
-    # -------------------------
+    # ==========================================================
     # Brushes
-    # -------------------------
+    # ==========================================================
+
     def get_brush(self):
         """Get the current brush."""
 

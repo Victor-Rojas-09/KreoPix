@@ -27,14 +27,17 @@ class ImageFormat:
 
     def get_size(self):
         """Return project size (width, height)."""
+
         return self.layers[0].image.size
 
     def get_layers(self):
         """Return all layers."""
+
         return list(self.layers)
 
     def composite(self):
         """Combine all visible layers into one image."""
+
         base = Image.new("RGBA", self.get_size(), (0, 0, 0, 0))
         for layer in self.layers:
             img = layer.get_image_with_opacity()

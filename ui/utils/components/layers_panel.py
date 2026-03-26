@@ -26,9 +26,9 @@ class LayersPanel(tk.Frame):
 
         self._update_layers(layers, selected_index)
 
-    # --------------------------------------------------
+    # ==================================================
     # Layout
-    # --------------------------------------------------
+    # ==================================================
 
     def _configure_grid(self):
         """Configure grid of the panel."""
@@ -45,7 +45,13 @@ class LayersPanel(tk.Frame):
 
         # Selection a mode
         self.mode_var = tk.StringVar(value="Normal")
-        self.mode_button = tk.Menubutton(header, textvariable=self.mode_var, bg="#666", fg="white", relief="raised")
+        self.mode_button = tk.Menubutton(
+            header,
+            textvariable=self.mode_var,
+            bg="#666",
+            fg="white",
+            relief="raised"
+        )
         self.mode_button.grid(row=0, column=0, padx=(5, 15))
 
         menu = tk.Menu(self.mode_button, tearoff=0)
@@ -65,11 +71,27 @@ class LayersPanel(tk.Frame):
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
         # Button for add a new layer
-        add_btn = tk.Button(header, text="+", bg="#777", fg="white", padx=5, pady=2, command=self._on_add_layer)
+        add_btn = tk.Button(
+            header,
+            text="+",
+            bg="#777",
+            fg="white",
+            padx=5,
+            pady=2,
+            command=self._on_add_layer
+        )
         add_btn.grid(row=0, column=2, padx=(5, 2))
 
         # Button for remove selected layer
-        remove_btn = tk.Button(header, text="-", bg="#777", fg="white", padx=5, pady=2, command=self._on_remove_layer)
+        remove_btn = tk.Button(
+            header,
+            text="-",
+            bg="#777",
+            fg="white",
+            padx=5,
+            pady=2,
+            command=self._on_remove_layer
+        )
         remove_btn.grid(row=0, column=3, padx=(2, 5))
 
     def _build_layers_area(self):
@@ -79,23 +101,32 @@ class LayersPanel(tk.Frame):
         self.layers_container.grid(row=1, column=0, sticky="nsew")
         self.layers_container.columnconfigure(0, weight=1)
 
-    # --------------------------------------------------
+    # ==================================================
     # Layers logic
-    # --------------------------------------------------
+    # ==================================================
     def load_layers(self, layers):
         """Render layer list."""
+
         for row in self.layer_rows:
             row.destroy()
+
         self.layer_rows.clear()
 
         for i, layer in reversed(list(enumerate(layers))):
-            row = LayerRow(self.layers_container, layer, index=i, controller=self.controller)
+
+            row = LayerRow(
+                self.layers_container,
+                layer,
+                index=i,
+                controller=self.controller
+            )
+
             row.pack(fill="x", padx=5, pady=2)
             self.layer_rows.append(row)
 
-    # --------------------------------------------------
+    # ==================================================
     # Layer controls
-    # --------------------------------------------------
+    # ==================================================
     def _on_opacity_change(self, value):
         """Change the opacity of the layer."""
 

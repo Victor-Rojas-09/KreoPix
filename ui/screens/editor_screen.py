@@ -6,7 +6,7 @@ from ui.panels.right_sidebar import RightSidebar
 
 
 class EditorScreen(tk.Frame):
-    """Main editor layout."""
+    """Main editor screen layout."""
 
     def __init__(self, parent, controller=None):
         super().__init__(parent)
@@ -58,7 +58,7 @@ class EditorScreen(tk.Frame):
         )
 
     # ==================================================
-    # API
+    # APIs
     # ==================================================
 
     def load_project(self, image_format):
@@ -67,10 +67,6 @@ class EditorScreen(tk.Frame):
         self.controller.state.set_format(image_format)
         # No need to call load_layers manually, listeners handle it
         self.refresh()
-
-    # ==================================================
-    # Refresh
-    # ==================================================
 
     def refresh(self):
         """refresh the image."""

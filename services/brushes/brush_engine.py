@@ -4,15 +4,16 @@ class BrushEngine:
     """Handles low-level brush rendering using an off-screen buffer."""
 
     def __init__(self):
-        """Initialize the brush engine with an empty buffer."""
         self.buffer = None
 
     def begin_stroke(self, layer: Image.Image):
         """Start a new stroke by creating a transparent buffer matching the layer size."""
+
         self.buffer = Image.new("RGBA", layer.size, (0, 0, 0, 0))
 
     def end_stroke(self, layer: Image.Image):
         """Finalize the stroke by compositing the buffer onto the target layer."""
+
         if self.buffer:
             layer.alpha_composite(self.buffer)
             self.buffer = None

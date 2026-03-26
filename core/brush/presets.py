@@ -7,10 +7,12 @@ class AirbrushType(BaseBrushType):
 
     def __init__(self, size=80, opacity=30):
         """Initialize airbrush with larger size and lower opacity."""
+
         super().__init__(size=size, opacity=opacity, soft=True)
 
     def get_opacity(self, point):
         """Reduce opacity further for a softer spray effect."""
+
         return super().get_opacity(point) * 0.5
 
 
@@ -21,10 +23,12 @@ class HardBrushType(BaseBrushType):
 
     def __init__(self, size=50, opacity=100):
         """Initialize hard brush with sharp edges."""
+
         super().__init__(size=size, opacity=opacity, soft=False)
 
     def get_opacity(self, point):
         """Return constant opacity, ignoring pressure."""
+
         return self.base_opacity / 100.0
 
 

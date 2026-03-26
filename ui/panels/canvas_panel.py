@@ -34,7 +34,7 @@ class CanvasPanel(tk.Frame):
             self.controller.state.add_listener(self.refresh_canvas)
 
     # =========================================================
-    # UI Construction
+    # Construction
     # =========================================================
 
     def _build_top_bar(self):

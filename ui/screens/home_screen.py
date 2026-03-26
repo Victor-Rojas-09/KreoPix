@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 class HomeScreen(tk.Frame):
+    """Main home screen of the application."""
 
     # ==================================================
     # Constructor
@@ -101,9 +102,9 @@ class HomeScreen(tk.Frame):
             )
         )
 
-    # -------------------------
+    # ==================================================
     # PUBLIC API
-    # -------------------------
+    # ==================================================
 
     def set_recent(self, recent_projects):
         """

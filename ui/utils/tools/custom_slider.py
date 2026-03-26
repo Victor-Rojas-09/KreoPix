@@ -54,52 +54,71 @@ class BaseSlider(tk.Canvas):
         self.bind("<Double-Button-1>", self._on_double_click)
         self.bind("<Configure>", self._on_resize)
 
-    # ----------------------------------
+    # ==================================================
     # Conversion methods
-    # ----------------------------------
+    # ==================================================
     def value_to_x(self, value):
+        """Convert a value to an x-coordinate."""
+
         ratio = (value - self.min) / (self.max - self.min)
         return ratio * self.width
 
     def x_to_value(self, x):
+        """Convert an x-coordinate to a value."""
+
         ratio = x / self.width
         return self.min + ratio * (self.max - self.min)
 
-    # ----------------------------------
+    # ==================================================
     # Event handlers
-    # ----------------------------------
+    # ==================================================
     def _on_click(self, event):
+        """Handle mouse click event."""
+
         self._update_from_event(event)
 
     def _on_drag(self, event):
+        """Handle mouse drag event."""
+
         self._update_from_event(event)
 
     def _update_from_event(self, event):
+        """Update slider value based on mouse position."""
+
         value = self.x_to_value(event.x)
         self.set_value(value)
 
     def _on_release(self, event):
+        """Handle release event."""
+
         if self.release_command:
             self.release_command(self.value)
 
     def _on_double_click(self, event):
+        """Handle double click event."""
+
         value = simpledialog.askfloat(
             "Set value",
             f"Enter value ({self.min} to {self.max}):",
             initialvalue=self.value
         )
+
         if value is not None:
             self.set_value(value, trigger=True)
 
     def _on_resize(self, event):
+        """Handle resize event."""
+
         self.width = event.width
         self.height = event.height
         self.draw()
 
-    # ----------------------------------
+    # ==================================================
     # Public API
-    # ----------------------------------
+    # ==================================================
     def set_value(self, value, trigger=True):
+        """Set slider value (clamped to range)."""
+
         clamped = max(self.min, min(self.max, value))
         self.value = clamped
         self.draw()
@@ -108,18 +127,13 @@ class BaseSlider(tk.Canvas):
             self.command(self.value)
 
     def get_value(self):
+        """Get slider value."""
+
         return self.value
 
-    # ----------------------------------
-    # Abstract method
-    # ----------------------------------
-    def draw(self):
-        raise NotImplementedError("Subclasses must implement draw()")
 
 class BlueSlider(BaseSlider):
-    """
-    Standard linear slider.
-    """
+    """Standard linear slider."""
 
     def __init__(
         self,
@@ -137,6 +151,8 @@ class BlueSlider(BaseSlider):
         self.draw()
 
     def draw(self):
+        """Draw slider."""
+
         self.delete("all")
 
         # Background
@@ -157,9 +173,7 @@ class BlueSlider(BaseSlider):
 
 
 class DarkRangeSlider(BaseSlider):
-    """
-    Bipolar slider centered.
-    """
+    """Bipolar dark slider centered."""
 
     def __init__(
         self,
@@ -180,9 +194,13 @@ class DarkRangeSlider(BaseSlider):
         self.draw()
 
     def center_x(self):
+        """Center x slider."""
+
         return self.value_to_x(0)
 
     def draw(self):
+        """Draw slider."""
+
         self.delete("all")
 
         mid_y = self.height // 2
