@@ -4,7 +4,7 @@
 
 At its core, KreoPix is designed as a **learning-driven project**: not just to edit images, but to demonstrate how to structure a complex application in a clean, scalable, and maintainable way. It combines a multi-layer canvas system, custom brush engines, and image processing capabilities with a carefully designed architecture that separates responsibilities across the entire system.
 
-The application is built using `tkinter` for the graphical interface and leverages `Pillow (PIL)` and `NumPy` for efficient pixel-level operations.
+The application is built using `tkinter` for the graphical interface and leverages `Pillow`, `OpenCV-Python` and `NumPy` for image processing.
 
 ---
 
@@ -29,8 +29,8 @@ The entire system is initialized through a central entry point (`AppRoot`), whic
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/kreopix.git
-cd kreopix
+git clone https://github.com/Victor-Rojas-09/KreoPix.git
+cd KreoPix
 ```
 
 ### 2. Install dependencies
@@ -42,7 +42,7 @@ pip install -r requirements.txt
 ### 3. Run the application
 
 ```bash
-python -m kreopix
+python -m KreoPix
 ```
 
 ---
