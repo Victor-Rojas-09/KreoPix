@@ -215,6 +215,15 @@ class AppController:
         if self.state:
             self.state.remove_selected_layer()
 
+
+    def request_set_layer_mode(self, layer, mode: str):
+        """Update the mode of a layer and notify to AppState."""
+
+        if layer:
+            layer.mode = mode
+            self.state._notify()
+            self.refresh_canvas()
+
     # ==========================================================
     # BRUSH OPERATIONS
     # ==========================================================
@@ -267,3 +276,35 @@ class AppController:
 
         brush = preset_factory(color) if color else preset_factory()
         self.state.set_brush(brush)
+
+    def request_update_filter_param(self, param_name: str, value):
+        """Update the filter parameter."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        if not hasattr(layer, "filter_params"):
+            layer.filter_params = {}
+
+        value = int(value * 255 / 100)
+
+        layer.filter_params[param_name] = value
+
+        self.state._notify()
+        self.refresh_canvas()
+
+    def request_set_filter(self, filter_name: str):
+        """Set active filter (compatible with BlendService)."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        layer.mode = filter_name
+
+        if not hasattr(layer, "filter_params"):
+            layer.filter_params = {}
+
+        self.state._notify()
+        self.refresh_canvas()
