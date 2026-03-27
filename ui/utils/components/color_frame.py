@@ -19,6 +19,7 @@ class ColorTabFrame(tk.Frame):
         self._add_slider("Contrast", self._on_contrast_change)
         self._add_slider("Saturation", self._on_saturation_change)
         self._add_slider("Gamma", self._on_gamma_change)
+        self._add_slider("Threshold", self._on_threshold_change)
 
         tk.Button(self, text="Advanced...", command=self._open_advanced_dialog).pack(pady=5)
 
@@ -74,6 +75,14 @@ class ColorTabFrame(tk.Frame):
 
         if self.controller:
             self.controller.request_update_gamma(value)
+
+    def _on_threshold_change(self, value):
+        """Thershold slider change."""
+        if self.controller:
+
+            self.controller.request_set_filter("threshold")
+
+            self.controller.request_update_filter_param("threshold", value)
 
     def _open_advanced_dialog(self):
         """Placeholder for advanced dialog."""
