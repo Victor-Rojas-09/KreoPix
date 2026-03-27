@@ -14,14 +14,14 @@ class MainLayout(tk.Frame):
         self.controller = None
         self.current_screen = None
 
-    # ---------- Public API ----------
-
     def set_controller(self, controller):
         """Attach app controller."""
+
         self.controller = controller
 
     def show(self, screen_name):
         """Display selected screen."""
+
         if self.current_screen:
             self.current_screen.destroy()
 
@@ -35,5 +35,6 @@ class MainLayout(tk.Frame):
 
     def load_project_into_editor(self, project):
         """Pass project to editor."""
+
         if isinstance(self.current_screen, EditorScreen):
             self.current_screen.load_project(project)
