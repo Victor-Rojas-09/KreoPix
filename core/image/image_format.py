@@ -69,6 +69,6 @@ class ImageFormat:
                 if base is None:
                     base = img.copy()
                 else:
-                    base = blend_service.blend(base, img, layer.mode)
+                    base = blend_service.blend(base, img, layer.mode, layer.filter_params)
 
         return base if base else None

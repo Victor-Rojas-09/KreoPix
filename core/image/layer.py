@@ -13,6 +13,7 @@ class Layer:
         self.visible = True
         self.opacity = 100
         self.mode = "Normal"
+        self.filter_params = {}
 
     def get_image_with_opacity(self):
         """Return the image with applied opacity if visible."""
