@@ -74,3 +74,23 @@ class GaussianBlur:
         blurred = cv2.GaussianBlur(img, (ksize, ksize), 0)
 
         return blurred
+
+class ThresholdFilter:
+    """
+    Convert image to black/white using threshold.
+    """
+
+    def __init__(self, threshold: int = 128):
+        self.threshold = threshold
+
+    def apply(self, img: np.ndarray) -> np.ndarray:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        _, thresh = cv2.threshold(
+            gray,
+            self.threshold,
+            255,
+            cv2.THRESH_BINARY
+        )
+
+        return np.stack((thresh, thresh, thresh), axis=2)
