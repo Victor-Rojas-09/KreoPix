@@ -1,6 +1,6 @@
 from PIL import Image
 from core.image.layer import Layer
-from services.filters.blend_service import BlendService
+from services.filters.filter_service import BlendService
 
 class ImageFormat:
     """Editable document with multiple layers."""
