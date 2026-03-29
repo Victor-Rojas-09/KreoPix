@@ -11,12 +11,6 @@ from services.filters.library.color.adjustments import (
     ChannelAdjust
 )
 
-from services.filters.filter_library import (
-    LaplacianEdge,
-    CannyEdge,
-    GaussianBlur,
-    ThresholdFilter
-)
 
 class BlendService:
     """Service for loading image blending modes."""
@@ -43,25 +37,6 @@ class BlendService:
             out = GrayscaleMidgray().apply(array)
             return Image.alpha_composite(bottom, numpy_to_pil(out))
 
-        elif mode == "laplacian":
-            array = pil_to_numpy(top)
-            out = LaplacianEdge().apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
-
-        elif mode == "canny":
-            array = pil_to_numpy(top)
-            out = CannyEdge().apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
-
-        elif mode == "gaussian_blur":
-            array = pil_to_numpy(top)
-            out = GaussianBlur().apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
-
-        elif mode == "threshold":
-            array = pil_to_numpy(top)
-            out = ThresholdFilter(**params).apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
 
         elif mode == "Brightness":
             array = pil_to_numpy(top)
