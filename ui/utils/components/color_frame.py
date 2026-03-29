@@ -13,10 +13,7 @@ class ColorTabFrame(tk.Frame):
     def _build(self):
 
         self._add_slider("Brightness", self._on_brightness_change)
-        self._add_slider("Contrast", self._on_contrast_change)
-        self._add_slider("Saturation", self._on_saturation_change)
         self._add_slider("channel_R", self._on_red_channel_change)
-        self._add_slider("Threshold", self._on_threshold_change)
 
         tk.Button(self, text="Advanced...", command=self._open_advanced_dialog).pack(pady=5)
 
@@ -54,15 +51,6 @@ class ColorTabFrame(tk.Frame):
             self.controller.request_set_filter("brightness")
             self.controller.request_update_filter_param("value", value)
 
-    def _on_contrast_change(self, value):
-
-        if self.controller:
-            self.controller.request_update_contrast(value)
-
-    def _on_saturation_change(self, value):
-
-        if self.controller:
-            self.controller.request_update_saturation(value)
 
     def _on_red_channel_change(self, value):
 
@@ -71,11 +59,6 @@ class ColorTabFrame(tk.Frame):
             self.controller.request_update_filter_param("channel", 0)
             self.controller.request_update_filter_param("value", value)
 
-    def _on_threshold_change(self, value):
-
-        if self.controller:
-            self.controller.request_set_filter("threshold")
-            self.controller.request_update_filter_param("threshold", value)
 
     def _open_advanced_dialog(self):
 
