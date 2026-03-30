@@ -2,6 +2,10 @@ import tkinter as tk
 from ui.utils.tools.custom_slider import BlueSlider
 from ui.utils.components.layer_row import LayerRow
 
+# Import your registry
+from services.filters.filter_service import FILTER_REGISTRY
+
+
 class LayersPanel(tk.Frame):
     """Layers management panel."""
 
@@ -26,6 +30,13 @@ class LayersPanel(tk.Frame):
 
         self._update_layers(layers, selected_index)
 
+        # Update mode UI based on selected layer
+        selected_layer = state.get_selected_layer()
+        if selected_layer:
+            filter_id = getattr(selected_layer, "filter_id", "normal")
+            filter_meta = FILTER_REGISTRY.get(filter_id, {})
+            self.mode_var.set(filter_meta.get("name", "Normal"))
+
     # ==================================================
     # Layout
     # ==================================================
@@ -43,8 +54,10 @@ class LayersPanel(tk.Frame):
         header.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         header.columnconfigure(1, weight=1)
 
-        # Selection a mode
+        # FILTER SELECTOR
+
         self.mode_var = tk.StringVar(value="Normal")
+
         self.mode_button = tk.Menubutton(
             header,
             textvariable=self.mode_var,
@@ -55,11 +68,20 @@ class LayersPanel(tk.Frame):
         self.mode_button.grid(row=0, column=0, padx=(5, 15))
 
         menu = tk.Menu(self.mode_button, tearoff=0)
-        for mode in ["Normal", "grayscale_avg", "grayscale_lum"]:
-            menu.add_command(label=mode, command=lambda m=mode: self._on_mode_change(m))
+
+        # Build menu dynamically from registry
+        for filter_id, meta in FILTER_REGISTRY.items():
+            label = meta.get("name", filter_id)
+
+            menu.add_command(
+                label=label,
+                command=lambda fid=filter_id, name=label: self._on_filter_change(fid, name)
+            )
+
         self.mode_button.config(menu=menu)
 
-        # Slider for the opacity manage
+        # OPACITY SLIDER
+
         self.opacity_slider = BlueSlider(
             header,
             min_value=0,
@@ -70,7 +92,8 @@ class LayersPanel(tk.Frame):
 
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
-        # Button for add a new layer
+        # LAYER BUTTONS
+
         add_btn = tk.Button(
             header,
             text="+",
@@ -82,7 +105,6 @@ class LayersPanel(tk.Frame):
         )
         add_btn.grid(row=0, column=2, padx=(5, 2))
 
-        # Button for remove selected layer
         remove_btn = tk.Button(
             header,
             text="-",
@@ -104,6 +126,7 @@ class LayersPanel(tk.Frame):
     # ==================================================
     # Layers logic
     # ==================================================
+
     def load_layers(self, layers):
         """Render layer list."""
 
@@ -127,6 +150,7 @@ class LayersPanel(tk.Frame):
     # ==================================================
     # Layer controls
     # ==================================================
+
     def _on_opacity_change(self, value):
         """Change the opacity of the layer."""
 
@@ -141,8 +165,14 @@ class LayersPanel(tk.Frame):
         if self.controller:
             self.controller.add_new_layer()
 
+    def _on_remove_layer(self):
+        """Request controller to remove selected layer."""
+
+        if self.controller:
+            self.controller.remove_selected_layer()
+
     def _update_layers(self, layers, selected_index):
-        """Efficient diff-based update (no full re-render)."""
+        """Efficient diff-based update ."""
 
         current = len(self.layer_rows)
         target = len(layers)
@@ -167,16 +197,11 @@ class LayersPanel(tk.Frame):
             row.update(layer, real_index)
             row.set_selected(real_index == selected_index)
 
-    def _on_remove_layer(self):
-        """Request controller to remove selected layer."""
+    def _on_filter_change(self, filter_id, display_name):
+        """Handle filter change from UI."""
 
-        if self.controller:
-            self.controller.remove_selected_layer()
+        if not self.controller:
+            return
 
-    def _on_mode_change(self, mode):
-        """Change the mode of the layer."""
-
-        layer = self.controller.state.get_selected_layer()
-        if layer:
-            self.controller.request_set_layer_mode(layer, mode)
-            self.mode_var.set(mode)
+        self.controller.request_set_filter(filter_id)
+        self.mode_var.set(display_name)

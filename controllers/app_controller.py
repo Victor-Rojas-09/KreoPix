@@ -177,6 +177,14 @@ class AppController:
             return []
         return document.get_layers()
 
+    def normalize_value(self, value, max_value=255):
+        """Convert a UI percentage value (0–100) into an internal range."""
+
+        try:
+            return int(float(value) * max_value / 100)
+        except (ValueError, TypeError):
+            return 0
+
     # ==========================================================
     # LAYER OPERATIONS
     # ==========================================================
@@ -216,13 +224,6 @@ class AppController:
             self.state.remove_selected_layer()
 
 
-    def request_set_layer_mode(self, layer, mode: str):
-        """Update the mode of a layer and notify to AppState."""
-
-        if layer:
-            layer.mode = mode
-            self.state._notify()
-            self.refresh_canvas()
 
     # ==========================================================
     # BRUSH OPERATIONS
@@ -248,7 +249,7 @@ class AppController:
 
         brush.apply_stroke(layer.image, brush_points, getattr(brush, "brush_color", (0, 0, 0, 255)))
 
-        self.state._notify()
+        self.state.notify()
         self.refresh_canvas()
 
     def request_update_brush_size(self, size: int):
@@ -277,34 +278,28 @@ class AppController:
         brush = preset_factory(color) if color else preset_factory()
         self.state.set_brush(brush)
 
-    def request_update_filter_param(self, param_name: str, value):
-        """Update the filter parameter."""
+    # ==========================================================
+    # FILTER REQUESTS
+    # ==========================================================
+
+    def request_set_filter(self, filter_id: str):
+        """Set the active filter for the selected layer."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
 
-        if not hasattr(layer, "filter_params"):
-            layer.filter_params = {}
-
-        value = int(value * 255 / 100)
-
-        layer.filter_params[param_name] = value
-
-        self.state._notify()
+        self.state.set_layer_filter(filter_id)
         self.refresh_canvas()
 
-    def request_set_filter(self, filter_name: str):
-        """Set active filter (compatible with BlendService)."""
+    def request_update_filter_param(self, param_name: str, value):
+        """Update a parameter of the current filter for the selected layer."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
 
-        layer.mode = filter_name
+        normalized_value = self.normalize_value(value)
 
-        if not hasattr(layer, "filter_params"):
-            layer.filter_params = {}
-
-        self.state._notify()
+        self.state.update_layer_filter_param(param_name, normalized_value)
         self.refresh_canvas()

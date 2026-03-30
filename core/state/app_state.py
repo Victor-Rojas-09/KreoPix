@@ -37,7 +37,7 @@ class AppState:
         self.current_format = image_format
         self.selected_layer_index = 0
         self.current_project = image_format
-        self._notify()
+        self.notify()
 
     def clear_format(self):
         """Remove the active document."""
@@ -45,7 +45,7 @@ class AppState:
         self.current_format = None
         self.selected_layer_index = 0
         self.current_project = None
-        self._notify()
+        self.notify()
 
     def has_format(self) -> bool:
         """Return True if a document is loaded."""
@@ -60,7 +60,7 @@ class AppState:
 
         self._listeners.append(callback)
 
-    def _notify(self):
+    def notify(self):
         """Notify all listeners."""
 
         for callback in self._listeners:
@@ -74,7 +74,7 @@ class AppState:
         """Get the active tool."""
 
         self.current_tool = tool
-        self._notify()
+        self.notify()
 
     def get_tool(self):
         """Set the active tool."""
@@ -114,26 +114,26 @@ class AppState:
             self.selected_layer_index = 0
         else:
             self.selected_layer_index = max(0, min(index, len(layers) - 1))
-        self._notify()
+        self.notify()
 
     def update_layer_opacity(self, layer, opacity: int):
         """Update the opacity of a layer."""
 
         layer.opacity = max(0, min(opacity, 100))
-        self._notify()
+        self.notify()
 
     def update_layer_visibility(self, layer, visible: bool):
         """Set layer visibility."""
 
         layer.visible = visible
-        self._notify()
+        self.notify()
 
     def update_layer_name(self, layer, name: str):
         """Set layer name."""
 
         if layer:
             layer.name = name
-            self._notify()
+            self.notify()
 
     def remove_selected_layer(self):
         """Remove the selected layer and adjust index."""
@@ -154,7 +154,7 @@ class AppState:
         else:
             self.selected_layer_index = 0
 
-        self._notify()
+        self.notify()
 
     # ==========================================================
     # Brushes
@@ -169,14 +169,14 @@ class AppState:
         """Set the current brush."""
 
         self.current_brush = brush
-        self._notify()
+        self.notify()
 
     def update_brush_size(self, size: int):
         """Update the current brush size."""
 
         if self.current_brush:
             self.current_brush.brush_type.base_size = max(1, int(size))
-            self._notify()
+            self.notify()
 
     def update_brush_opacity(self, opacity: int):
 
@@ -184,7 +184,7 @@ class AppState:
 
         if self.current_brush:
             self.current_brush.brush_type.base_opacity = max(0, min(100, int(opacity)))
-            self._notify()
+            self.notify()
 
     def update_brush_color(self, color: tuple):
         """Update the current brush color."""
@@ -192,4 +192,35 @@ class AppState:
         if self.current_brush:
             # Save the color for the brush
             self.current_brush.brush_color = color
-            self._notify()
+            self.notify()
+
+    # ==========================================================
+    # Filters
+    # ==========================================================
+
+    def update_layer_filter_param(self, param_name, value):
+        layer = self.get_selected_layer()
+        if not layer:
+            return
+
+        if not hasattr(layer, "filter_params"):
+            layer.filter_params = {}
+
+        layer.filter_params[param_name] = value
+        self.notify()
+
+
+    def set_layer_filter(self, filter_id: str):
+        """
+        Set the filter ID for the currently selected layer.
+
+        Args:
+            filter_id (str): The key of the filter in the registry.
+        """
+        layer = self.get_selected_layer()
+        if layer:
+            layer.filter_id = filter_id
+            # Ensure filter_params dictionary exists
+            if not hasattr(layer, "filter_params") or layer.filter_params is None:
+                layer.filter_params = {}
+            self.notify()

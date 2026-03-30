@@ -1,6 +1,9 @@
 from PIL import Image
 from core.image.layer import Layer
-from services.filters.filter_service import BlendService
+from services.filters.filter_service import (
+    BlendService,
+    FilterService
+)
 
 class ImageFormat:
     """Editable document with multiple layers."""
@@ -55,20 +58,41 @@ class ImageFormat:
         self.layers.append(new_layer)
         return new_layer
 
-    def composite(self):
-        """Select the method shown in the image."""
+    def composite(self, blend_service=None, filter_service=None):
+        """Render final image by compositing all visible layers."""
 
-        blend_service = BlendService()
-        base = None
+        if blend_service is None:
+            blend_service = BlendService()
+        if filter_service is None:
+            filter_service = FilterService()
+
+        base_image = None
 
         for layer in self.layers:
             if not layer.visible:
                 continue
-            img = layer.get_image_with_opacity()
-            if img:
-                if base is None:
-                    base = img.copy()
-                else:
-                    base = blend_service.blend(base, img, layer.mode, layer.filter_params)
 
-        return base if base else None
+            layer_image = layer.image
+            if layer_image is None:
+                continue
+
+            # Apply filter
+            filtered_image = filter_service.apply(
+                layer_image,
+                layer.filter_id,
+                layer.filter_params
+            )
+
+            # Apply opacity
+            final_layer_image = layer.get_image_with_opacity(filtered_image)
+
+            if final_layer_image is None:
+                continue
+
+            # Blend
+            if base_image is None:
+                base_image = final_layer_image.copy()
+            else:
+                base_image = blend_service.blend(base_image, final_layer_image)
+
+        return base_image

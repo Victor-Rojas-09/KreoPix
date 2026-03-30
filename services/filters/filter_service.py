@@ -1,56 +1,138 @@
 from PIL import Image
+
 from services.filters.utils import pil_to_numpy, numpy_to_pil
-from services.filters.library.color.grayscale import (
+
+from core.library.color.grayscale import (
     GrayscaleAverage,
     GrayscaleLuminosity,
     GrayscaleMidgray
 )
 
-from services.filters.library.color.adjustments import (
+from core.library.color.adjustments import (
     BrightnessAdjust,
     ChannelAdjust
 )
 
 
-class BlendService:
-    """Service for loading image blending modes."""
+"""
+The FILTER_REGISTRY is a centralized dictionary that defines all 
+available image filters. It works with a configuration map of filter 
+identifier to its corresponding implementation and parameter rules.
+"""
 
-    def blend(self, bottom: Image.Image, top: Image.Image, mode: str, params=None) -> Image.Image:
-        """Nested IFs for filter selection."""
+FILTER_REGISTRY = {
+    "normal": {
+        "name": "Normal",
+        "class": None,
+        "params": {}
+    },
+    "grayscale_average": {
+        "name": "Grayscale Average",
+        "class": GrayscaleAverage,
+        "params": {}
+    },
+    "grayscale_luminosity": {
+        "name": "Grayscale Luminosity",
+        "class": GrayscaleLuminosity,
+        "params": {}
+    },
+    "grayscale_midgray": {
+        "name": "Grayscale Midgray",
+        "class": GrayscaleMidgray,
+        "params": {}
+    },
+    "brightness": {
+        "name": "Brightness",
+        "class": BrightnessAdjust,
+        "params": {
+            "value": {"min": -255, "max": 255, "default": 0}
+        }
+    },
+    "channel_adjust": {
+        "name": "Channel Adjust",
+        "class": ChannelAdjust,
+        "params": {
+            "value": {"min": -255, "max": 255, "default": 0},
+            "channel": {"min": 0, "max": 2, "default": 0}
+        }
+    }
+}
+
+
+class FilterService:
+    """Service responsible for applying filters to images."""
+
+    def apply(self, image: Image.Image, filter_id: str, params: dict = None) -> Image.Image:
+        """Apply a filter to an image safely."""
+
+        if image is None:
+            return None
+
         params = params or {}
 
-        if mode == "normal":
-            return Image.alpha_composite(bottom, top)
+        # Validate filter existence
+        filter_meta = FILTER_REGISTRY.get(filter_id)
+        if not filter_meta:
+            return image
 
-        elif mode == "grayscale_avg":
-            array = pil_to_numpy(top)
-            out = GrayscaleAverage().apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
+        filter_class = filter_meta.get("class")
 
-        elif mode == "grayscale_lum":
-            array = pil_to_numpy(top)
-            out = GrayscaleLuminosity().apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
+        if filter_class is None:
+            return image
 
-        elif mode == "grayscale_lum":
-            array = pil_to_numpy(top)
-            out = GrayscaleMidgray().apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
+        safe_params = self._validate_params(filter_meta, params)
 
+        try:
+            np_image = pil_to_numpy(image)
 
-        elif mode == "Brightness":
-            array = pil_to_numpy(top)
-            out = BrightnessAdjust(**params).apply(array)
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
+            filter_instance = filter_class(**safe_params)
+            array = filter_instance.apply(np_image)
 
+            return numpy_to_pil(array)
 
-        elif mode == "channel_R":
-            array = pil_to_numpy(top)
-            channel = params.get("channel", 0)
-            value = params.get("value", 0)
-            out = ChannelAdjust(value=value).apply(array, channel=channel)
+        except Exception:
+            return image
 
-            return Image.alpha_composite(bottom, numpy_to_pil(out))
+    def _validate_params(self, filter_meta: dict, input_params: dict) -> dict:
+        """Validate and sanitize filter parameters."""
 
-        else:
-            return Image.alpha_composite(bottom, top)
+        validated_params = {}
+
+        param_schema = filter_meta.get("params", {})
+
+        for param_name, rules in param_schema.items():
+
+            raw_value = input_params.get(param_name, rules.get("default"))
+
+            if raw_value is None:
+                validated_params[param_name] = rules.get("default")
+                continue
+
+            try:
+                value = int(raw_value)
+            except (ValueError, TypeError):
+                value = rules.get("default")
+
+            # Clamp values
+            min_val = rules.get("min", value)
+            max_val = rules.get("max", value)
+
+            value = max(min_val, min(max_val, value))
+
+            validated_params[param_name] = value
+
+        return validated_params
+
+class BlendService:
+    """Service responsible for blending two images."""
+
+    def blend(self, base_image: Image.Image, top_image: Image.Image) -> Image.Image:
+        """Blend two images using alpha compositing."""
+
+        if base_image is None:
+            return top_image
+
+        if top_image is None:
+            return base_image
+
+        return Image.alpha_composite(base_image, top_image)

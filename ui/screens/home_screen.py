@@ -13,10 +13,8 @@ class HomeScreen(tk.Frame):
         self.controller = controller
         self.recent_files = []
 
-        # Keep references to images to avoid garbage collection
         self._thumbnails = []
 
-        # Create de config of the frame
         self._configure_grid()
         self._create_header()
         self._create_actions_panel()
@@ -27,11 +25,15 @@ class HomeScreen(tk.Frame):
     # ==================================================
 
     def _configure_grid(self):
+        """Configure the grid of widgets."""
+
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         self.rowconfigure(1, weight=1)
 
     def _create_header(self):
+        """Create the header."""
+
         tk.Label(
             self,
             text="Welcome to KreoPix",
@@ -39,6 +41,8 @@ class HomeScreen(tk.Frame):
         ).grid(row=0, column=0, columnspan=2, pady=30)
 
     def _create_actions_panel(self):
+        """Create the actions panel."""
+
         frame = tk.Frame(self)
         frame.grid(row=1, column=0, sticky="nsew", padx=40)
 
@@ -63,12 +67,7 @@ class HomeScreen(tk.Frame):
     # ==================================================
 
     def _create_recent_panel(self):
-        """
-        Creates the Recent Projects panel.
-
-        Uses a scrollable frame where each recent project
-        is rendered as a card containing a thumbnail and filename.
-        """
+        """Creates the Recent Projects panel using a scrollable frame."""
 
         self.recent_frame = tk.Frame(self, bd=1, relief="solid")
         self.recent_frame.grid(row=1, column=1, sticky="nsew", padx=40)
@@ -107,24 +106,13 @@ class HomeScreen(tk.Frame):
     # ==================================================
 
     def set_recent(self, recent_projects):
-        """
-        Updates the list of recent projects displayed on the Home screen.
-
-        Parameters
-        ----------
-        recent_projects : list[dict]
-            Each dict must contain:
-            - path : full file path
-            - name : file name with extension
-        """
+        """Updates the list of recent projects displayed on the Home screen."""
 
         self.recent_files = recent_projects
         self._refresh_recent()
 
     def _refresh_recent(self):
-        """
-        Clears and rebuilds the recent project cards.
-        """
+        """Clears and rebuilds the recent project cards."""
 
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
@@ -136,9 +124,7 @@ class HomeScreen(tk.Frame):
 
 
     def _create_recent_card(self, project):
-        """
-        Creates a visual card representing a recent project.
-        """
+        """Creates a visual card representing a recent project."""
 
         frame = tk.Frame(
             self.scroll_frame,

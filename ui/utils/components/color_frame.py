@@ -1,8 +1,14 @@
 import tkinter as tk
 from tkinter import colorchooser
 from ui.utils.tools.custom_slider import DarkRangeSlider
+from services.filters.filter_service import FILTER_REGISTRY
+
 
 class ColorTabFrame(tk.Frame):
+    """
+    Color adjustment panel for brightness and channels.
+    Connects sliders and color picker to controller.
+    """
 
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#444")
@@ -11,12 +17,17 @@ class ColorTabFrame(tk.Frame):
         self._build()
 
     def _build(self):
+        """Build sliders and color UI."""
 
+        # Brightness slider
         self._add_slider("Brightness", self._on_brightness_change)
-        self._add_slider("channel_R", self._on_red_channel_change)
+        # Red channel slider (example channel)
+        self._add_slider("Red Channel", self._on_red_channel_change)
 
+        # Advanced filter placeholder
         tk.Button(self, text="Advanced...", command=self._open_advanced_dialog).pack(pady=5)
 
+        # Color bar
         self.color_bar = tk.Frame(self, bg="#333")
         self.color_bar.pack(fill="x", padx=5, pady=5)
 
@@ -24,9 +35,11 @@ class ColorTabFrame(tk.Frame):
         self.colors = default_colors.copy()
         self._refresh_color_bar()
 
+        # Pick color button
         tk.Button(self, text="Pick Color", command=self._open_color_picker).pack(pady=5)
 
     def _add_slider(self, label, command):
+        """Add a labeled slider to the frame."""
 
         frame = tk.Frame(self, bg="#444")
         frame.pack(fill="x", padx=10, pady=2)
@@ -42,30 +55,42 @@ class ColorTabFrame(tk.Frame):
             initial_value=0,
             command=command
         )
-
         slider.grid(row=0, column=1, sticky="ew")
 
+    # ==================================================
+    # FILTER SLIDER CALLBACKS
+    # ==================================================
+
     def _on_brightness_change(self, value):
+        """Update brightness filter parameter."""
+        if not self.controller:
+            return
 
-        if self.controller:
-            self.controller.request_set_filter("brightness")
-            self.controller.request_update_filter_param("value", value)
-
+        # Set the filter by its registry ID
+        filter_id = "brightness"  # Must match FILTER_REGISTRY
+        self.controller.request_set_filter(filter_id)
+        # Convert value to 0-255 range (example)
+        scaled_value = int((value + 100) * 255 / 200)
+        self.controller.request_update_filter_param("value", scaled_value)
 
     def _on_red_channel_change(self, value):
+        """Update red channel filter parameter."""
+        if not self.controller:
+            return
 
-        if self.controller:
-            self.controller.request_set_filter("channel")
-            self.controller.request_update_filter_param("channel", 0)
-            self.controller.request_update_filter_param("value", value)
+        filter_id = "channel_R"  # Must match FILTER_REGISTRY
+        self.controller.request_set_filter(filter_id)
+        # Update channel index and value
+        self.controller.request_update_filter_param("channel", 0)  # Red channel
+        scaled_value = int((value + 100) * 255 / 200)
+        self.controller.request_update_filter_param("value", scaled_value)
 
-
-    def _open_advanced_dialog(self):
-
-        print("Advanced dialog placeholder")
+    # ==================================================
+    # COLOR PICKER
+    # ==================================================
 
     def _open_color_picker(self):
-
+        """Open system color picker and assign color to brush."""
         result = colorchooser.askcolor(initialcolor="#000000")
 
         if result and result[1]:
@@ -79,26 +104,24 @@ class ColorTabFrame(tk.Frame):
             self._add_recent_color(hex_color)
 
     def _add_recent_color(self, hex_color):
-
+        """Maintain a small recent colors palette."""
         if hex_color in self.colors:
             self.colors.remove(hex_color)
-
         self.colors.insert(0, hex_color)
-
         if len(self.colors) > 9:
             self.colors = self.colors[:9]
-
         self._refresh_color_bar()
 
     def _refresh_color_bar(self):
+        """Re-render color buttons."""
 
         for widget in self.color_bar.winfo_children():
             widget.destroy()
-
         for c in self.colors:
             self._add_color_button(c)
 
     def _add_color_button(self, hex_color):
+        """Create a button for a specific color."""
 
         btn = tk.Button(
             self.color_bar,
@@ -107,14 +130,18 @@ class ColorTabFrame(tk.Frame):
             height=1,
             command=lambda c=hex_color: self._select_color(c)
         )
-
         btn.pack(side="left", padx=2)
 
     def _select_color(self, hex_color):
+        """Select a color from the bar and assign to brush."""
 
         r, g, b = self.winfo_rgb(hex_color)
         r, g, b = r // 256, g // 256, b // 256
         color = (r, g, b, 255)
-
         if self.controller:
             self.controller.request_update_brush_color(color)
+
+    def _open_advanced_dialog(self):
+        """Placeholder for advanced filter options."""
+
+        print("Advanced dialog placeholder")

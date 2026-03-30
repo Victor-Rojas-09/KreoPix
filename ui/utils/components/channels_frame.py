@@ -38,11 +38,11 @@ class ChannelsTabFrame(tk.Frame):
         else:  # CMYK
             channel_list = ["C", "M", "Y", "K"]
 
-        for ch in channel_list:
+        for channel in channel_list:
             var = tk.BooleanVar(value=True)
-            cb = tk.Checkbutton(self.channels_frame, text=ch, variable=var, bg="#444", fg="white")
-            cb.pack(anchor="w", padx=10)
-            self.channels[ch] = var
+            button = tk.Checkbutton(self.channels_frame, text=channel, variable=var, bg="#444", fg="white")
+            button.pack(anchor="w", padx=10)
+            self.channels[channel] = var
 
     def _on_mode_change(self, mode):
         """Handle mode change and rebuild channel checkboxes."""

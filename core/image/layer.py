@@ -3,7 +3,7 @@ from PIL import Image
 class Layer:
     """Represents a single image layer."""
 
-    def __init__(self, image=None, name="Layer", width=800, height=600):
+    def __init__(self, image=None, name="Layer", width=800, height=600, opacity=100):
         if image is None:
             image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
 
@@ -11,20 +11,21 @@ class Layer:
         self.image = image.copy()
         self.name = name
         self.visible = True
-        self.opacity = 100
-        self.mode = "Normal"
+        self.opacity = opacity
+        self.filter_id = "normal"
         self.filter_params = {}
 
-    def get_image_with_opacity(self):
-        """Return the image with applied opacity if visible."""
+    def get_image_with_opacity(self, image=None):
+        """Return a copy of the layer image adjusted for opacity."""
 
-        if not self.visible:
-            return None
+        img = image if image else self.image
 
-        img = self.image.copy()
+        if img is None or self.opacity == 100:
+            return img.copy()
 
-        if self.opacity < 100:
-            alpha = img.getchannel("A")
-            alpha = alpha.point(lambda p: int(p * (self.opacity / 100)))
-            img.putalpha(alpha)
-        return img
+        alpha = int(255 * (self.opacity / 100))
+
+        result = img.copy()
+        result.putalpha(alpha)
+
+        return result
