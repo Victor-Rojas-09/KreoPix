@@ -16,8 +16,16 @@ class ChannelsTabFrame(tk.Frame):
         # Mode selector
         mode_frame = tk.Frame(self, bg="#444")
         mode_frame.pack(fill="x", pady=5)
+
         tk.Label(mode_frame, text="Mode:", bg="#444", fg="white").pack(side="left", padx=5)
-        option = tk.OptionMenu(mode_frame, self.mode_var, "RGB", "CMYK", command=self._on_mode_change)
+
+        option = tk.OptionMenu(
+            mode_frame,
+            self.mode_var,
+            "RGB",
+            "CMYK",
+            command=self._on_mode_change
+        )
         option.pack(side="left")
 
         # Channel checkboxes container
@@ -31,20 +39,77 @@ class ChannelsTabFrame(tk.Frame):
 
         for widget in self.channels_frame.winfo_children():
             widget.destroy()
+
         self.channels.clear()
 
         if mode == "RGB":
             channel_list = ["R", "G", "B"]
-        else:  # CMYK
-            channel_list = ["C", "M", "Y", "K"]
+        else:
+            channel_list = ["C", "M", "Y"]
 
         for channel in channel_list:
-            var = tk.BooleanVar(value=True)
-            button = tk.Checkbutton(self.channels_frame, text=channel, variable=var, bg="#444", fg="white")
+            var = tk.BooleanVar(value=False)
+
+            button = tk.Checkbutton(
+                self.channels_frame,
+                text=channel,
+                variable=var,
+                bg="#444",
+                fg="white",
+                command=lambda ch=channel: self._on_channel_toggle(ch)
+            )
             button.pack(anchor="w", padx=10)
+
             self.channels[channel] = var
 
     def _on_mode_change(self, mode):
         """Handle mode change and rebuild channel checkboxes."""
 
         self._build_channel_checkboxes(mode)
+
+        # Reset filter when mode changes
+        self.controller.request_set_filter("normal")
+
+
+    def _on_channel_toggle(self, selected_channel):
+        """Enforce single selection behavior."""
+
+        selected_var = self.channels[selected_channel]
+
+        # If user unchecks the active one
+        if not selected_var.get():
+            self.controller.request_set_filter("normal")
+            return
+
+        # Enforce exclusive selection
+        for ch, var in self.channels.items():
+            if ch != selected_channel:
+                var.set(False)
+
+        # Apply corresponding filter
+        filter_id = self._map_channel_to_filter(selected_channel)
+
+        if filter_id and self.controller:
+            self.controller.request_set_filter(filter_id)
+
+    def _map_channel_to_filter(self, channel):
+        """Map for the channels label in FILTER_REGISTRY."""
+
+        mode = self.mode_var.get()
+
+        mapping_rgb = {
+            "R": "red_channel",
+            "G": "green_channel",
+            "B": "blue_channel"
+        }
+
+        mapping_cmy = {
+            "C": "cyan_channel",
+            "M": "magenta_channel",
+            "Y": "yellow_channel"
+        }
+
+        if mode == "RGB":
+            return mapping_rgb.get(channel)
+        else:
+            return mapping_cmy.get(channel)
