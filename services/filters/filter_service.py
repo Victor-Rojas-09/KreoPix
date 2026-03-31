@@ -2,6 +2,15 @@ from PIL import Image
 
 from services.filters.utils import pil_to_numpy, numpy_to_pil
 
+from core.library.color.channels import (
+    RedChannel,
+    GreenChannel,
+    BlueChannel,
+    CyanChannel,
+    MagentaChannel,
+    YellowChannel
+)
+
 from core.library.color.grayscale import (
     GrayscaleAverage,
     GrayscaleLuminosity,
@@ -24,6 +33,36 @@ FILTER_REGISTRY = {
     "normal": {
         "name": "Normal",
         "class": None,
+        "params": {}
+    },
+    "red_channel": {
+        "name": "Red Channel",
+        "class": RedChannel,
+        "params": {}
+    },
+    "green_channel": {
+        "name": "Green Channel",
+        "class": GreenChannel,
+        "params": {}
+    },
+    "blue_channel": {
+        "name": "Blue Channel",
+        "class": BlueChannel,
+        "params": {}
+    },
+    "cyan_channel": {
+        "name": "Cyan Channel",
+        "class": CyanChannel,
+        "params": {}
+    },
+    "magenta_channel": {
+        "name": "Magenta Channel",
+        "class": MagentaChannel,
+        "params": {}
+    },
+    "yellow_channel": {
+        "name": "Yellow Channel",
+        "class": YellowChannel,
         "params": {}
     },
     "grayscale_average": {
