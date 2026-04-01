@@ -1,14 +1,10 @@
 import tkinter as tk
 from tkinter import colorchooser
 from ui.utils.tools.custom_slider import DarkRangeSlider
-from services.filters.filter_service import FILTER_REGISTRY
 
 
 class ColorTabFrame(tk.Frame):
-    """
-    Color adjustment panel for brightness and channels.
-    Connects sliders and color picker to controller.
-    """
+    """Color adjustment panel."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#444")
@@ -16,132 +12,205 @@ class ColorTabFrame(tk.Frame):
         self.colors = []
         self._build()
 
+    # ==================================================
+    # UI BUILD
+    # ==================================================
+
     def _build(self):
-        """Build sliders and color UI."""
+        """Build the full UI layout."""
 
-        # Brightness slider
         self._add_slider("Brightness", self._on_brightness_change)
-        # Red channel slider (example channel)
-        self._add_slider("Red Channel", self._on_red_channel_change)
+        self._add_slider("Red", self._on_red_change)
+        self._add_slider("Green", self._on_green_change)
+        self._add_slider("Blue", self._on_blue_change)
 
-        # Advanced filter placeholder
-        tk.Button(self, text="Advanced...", command=self._open_advanced_dialog).pack(pady=5)
+        tk.Button(
+            self,
+            text="Advanced...",
+            command=self._open_advanced_dialog
+        ).pack(pady=5)
 
-        # Color bar
         self.color_bar = tk.Frame(self, bg="#333")
-        self.color_bar.pack(fill="x", padx=5, pady=5)
+        self.color_bar.pack(fill="x", padx=10, pady=8)
 
         default_colors = ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF"]
         self.colors = default_colors.copy()
         self._refresh_color_bar()
 
-        # Pick color button
-        tk.Button(self, text="Pick Color", command=self._open_color_picker).pack(pady=5)
+        tk.Button(
+            self,
+            text="Pick Color",
+            command=self._open_color_picker
+        ).pack(pady=5)
 
     def _add_slider(self, label, command):
-        """Add a labeled slider to the frame."""
+        """Create a centered slider row with aligned label."""
 
         frame = tk.Frame(self, bg="#444")
-        frame.pack(fill="x", padx=10, pady=2)
-        frame.columnconfigure(0, weight=0, minsize=80)
-        frame.columnconfigure(1, weight=1)
+        frame.pack(fill="x", padx=10, pady=4)
 
-        tk.Label(frame, text=label, bg="#444", fg="white").grid(row=0, column=0, sticky="w")
+        inner = tk.Frame(frame, bg="#444")
+        inner.pack(anchor="center")
+
+        tk.Label(
+            inner,
+            text=label,
+            width=10,
+            anchor="w",
+            bg="#444",
+            fg="white"
+        ).pack(side="left", padx=(0, 10))
 
         slider = DarkRangeSlider(
-            frame,
+            inner,
             min_value=-100,
             max_value=100,
             initial_value=0,
+            width=240,
             command=command
         )
-        slider.grid(row=0, column=1, sticky="ew")
+        slider.pack(side="left")
 
     # ==================================================
-    # FILTER SLIDER CALLBACKS
+    # SCALING FUNCTIONS
+    # ==================================================
+
+    def _scale_linear(self, value):
+        """Linear scaling."""
+
+        return int(value * 255 / 100)
+
+    def _scale_gamma(self, value, gamma):
+        """Gamma-based non-linear scaling."""
+
+        v = value / 100
+
+        if v >= 0:
+            return int((v ** gamma) * 255)
+        else:
+            return int(-(abs(v) ** gamma) * 255)
+
+    # ==================================================
+    # FILTER CALLBACKS
     # ==================================================
 
     def _on_brightness_change(self, value):
-        """Update brightness filter parameter."""
+        """Apply brightness filter using gamma scaling."""
+
         if not self.controller:
             return
 
-        # Set the filter by its registry ID
-        filter_id = "brightness"  # Must match FILTER_REGISTRY
-        self.controller.request_set_filter(filter_id)
-        # Convert value to 0-255 range (example)
-        scaled_value = int((value + 100) * 255 / 200)
-        self.controller.request_update_filter_param("value", scaled_value)
+        self.controller.request_set_filter("brightness")
 
-    def _on_red_channel_change(self, value):
-        """Update red channel filter parameter."""
+        scaled_value = self._scale_gamma(value, gamma=3.0)
+
+        self.controller.request_update_filter_param(
+            "value",
+            scaled_value
+        )
+
+    def _on_red_change(self, value):
+        """Apply red channel adjustment."""
+
         if not self.controller:
             return
 
-        filter_id = "channel_R"  # Must match FILTER_REGISTRY
-        self.controller.request_set_filter(filter_id)
-        # Update channel index and value
-        self.controller.request_update_filter_param("channel", 0)  # Red channel
-        scaled_value = int((value + 100) * 255 / 200)
-        self.controller.request_update_filter_param("value", scaled_value)
+        self.controller.request_set_filter("red_adjust")
+
+        self.controller.request_update_filter_param(
+            "value",
+            self._scale_linear(value)
+        )
+
+    def _on_green_change(self, value):
+        """Apply green channel adjustment."""
+
+        if not self.controller:
+            return
+
+        self.controller.request_set_filter("green_adjust")
+
+        self.controller.request_update_filter_param(
+            "value",
+            self._scale_linear(value)
+        )
+
+    def _on_blue_change(self, value):
+        """Apply blue channel adjustment."""
+
+        if not self.controller:
+            return
+
+        self.controller.request_set_filter("blue_adjust")
+
+        self.controller.request_update_filter_param(
+            "value",
+            self._scale_linear(value)
+        )
 
     # ==================================================
     # COLOR PICKER
     # ==================================================
 
     def _open_color_picker(self):
-        """Open system color picker and assign color to brush."""
+        """Open system color picker and apply selected color."""
+
         result = colorchooser.askcolor(initialcolor="#000000")
 
         if result and result[1]:
-            hex_color = result[1]
             r, g, b = map(int, result[0])
             color = (r, g, b, 255)
 
             if self.controller:
                 self.controller.request_update_brush_color(color)
 
-            self._add_recent_color(hex_color)
+            self._add_recent_color(result[1])
 
     def _add_recent_color(self, hex_color):
-        """Maintain a small recent colors palette."""
+        """Maintain a list of recent colors."""
+
         if hex_color in self.colors:
             self.colors.remove(hex_color)
+
         self.colors.insert(0, hex_color)
+
         if len(self.colors) > 9:
             self.colors = self.colors[:9]
+
         self._refresh_color_bar()
 
     def _refresh_color_bar(self):
-        """Re-render color buttons."""
+        """Refresh color buttons."""
 
         for widget in self.color_bar.winfo_children():
             widget.destroy()
+
         for c in self.colors:
             self._add_color_button(c)
 
     def _add_color_button(self, hex_color):
-        """Create a button for a specific color."""
+        """Create a selectable color button."""
 
-        btn = tk.Button(
+        tk.Button(
             self.color_bar,
             bg=hex_color,
             width=2,
             height=1,
             command=lambda c=hex_color: self._select_color(c)
-        )
-        btn.pack(side="left", padx=2)
+        ).pack(side="left", padx=2)
 
     def _select_color(self, hex_color):
-        """Select a color from the bar and assign to brush."""
+        """Apply selected color from palette."""
 
         r, g, b = self.winfo_rgb(hex_color)
         r, g, b = r // 256, g // 256, b // 256
+
         color = (r, g, b, 255)
+
         if self.controller:
             self.controller.request_update_brush_color(color)
 
     def _open_advanced_dialog(self):
-        """Placeholder for advanced filter options."""
+        """Placeholder for future advanced tools."""
 
         print("Advanced dialog placeholder")
