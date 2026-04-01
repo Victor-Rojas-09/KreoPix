@@ -2,7 +2,6 @@ import tkinter as tk
 from ui.utils.tools.custom_slider import BlueSlider
 from ui.utils.components.layer_row import LayerRow
 
-# Import your registry
 from services.filters.filter_service import FILTER_REGISTRY
 
 
@@ -69,8 +68,20 @@ class LayersPanel(tk.Frame):
 
         menu = tk.Menu(self.mode_button, tearoff=0)
 
-        # Build menu dynamically from registry
-        for filter_id, meta in FILTER_REGISTRY.items():
+        # List of filters used
+        filters_to_show = [
+            "normal",
+            "grayscale_average",
+            "grayscale_luminosity",
+            "grayscale_midgray"
+        ]
+
+        for filter_id in filters_to_show:
+            meta = FILTER_REGISTRY.get(filter_id)
+
+            if not meta:
+                continue
+
             label = meta.get("name", filter_id)
 
             menu.add_command(
@@ -79,8 +90,6 @@ class LayersPanel(tk.Frame):
             )
 
         self.mode_button.config(menu=menu)
-
-        # OPACITY SLIDER
 
         self.opacity_slider = BlueSlider(
             header,
@@ -91,8 +100,6 @@ class LayersPanel(tk.Frame):
         )
 
         self.opacity_slider.grid(row=0, column=1, sticky="ew", padx=(0, 5))
-
-        # LAYER BUTTONS
 
         add_btn = tk.Button(
             header,
