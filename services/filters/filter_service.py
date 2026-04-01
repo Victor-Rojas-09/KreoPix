@@ -19,7 +19,9 @@ from core.library.color.grayscale import (
 
 from core.library.color.adjustments import (
     BrightnessAdjust,
-    ChannelAdjust
+    RedAdjust,
+    GreenAdjust,
+    BlueAdjust
 )
 
 
@@ -87,12 +89,28 @@ FILTER_REGISTRY = {
             "value": {"min": -255, "max": 255, "default": 0}
         }
     },
-    "channel_adjust": {
-        "name": "Channel Adjust",
-        "class": ChannelAdjust,
+
+    "red_adjust": {
+        "name": "Red Adjust",
+        "class": RedAdjust,
         "params": {
-            "value": {"min": -255, "max": 255, "default": 0},
-            "channel": {"min": 0, "max": 2, "default": 0}
+            "value": {"min": -255, "max": 255, "default": 0}
+        }
+    },
+
+    "green_adjust": {
+        "name": "Green Adjust",
+        "class": GreenAdjust,
+        "params": {
+            "value": {"min": -255, "max": 255, "default": 0}
+        }
+    },
+
+    "blue_adjust": {
+        "name": "Blue Adjust",
+        "class": BlueAdjust,
+        "params": {
+            "value": {"min": -255, "max": 255, "default": 0}
         }
     }
 }
