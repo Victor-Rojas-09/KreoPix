@@ -3,7 +3,7 @@ import numpy as np
 
 class BrightnessAdjust:
     """
-    Class for adjusting the brightness of an image.
+    Adjusts overall image brightness.
     """
 
     def __init__(self, value: int = 0):
@@ -18,25 +18,52 @@ class BrightnessAdjust:
         return result.astype(np.uint8)
 
 
-class ChannelAdjust:
+class RedAdjust:
     """
-    Adjusts the brightness of a specific channel in the image.
+    Adjusts the red channel intensity.
     """
 
     def __init__(self, value: int = 0):
         self.value = value
 
-    def apply(self, img: np.ndarray, channel: int) -> np.ndarray:
-
-        if channel not in [0, 1, 2]:
-            raise ValueError("The channel must be 0 (R), 1 (G), or 2 (B).")
+    def apply(self, img: np.ndarray) -> np.ndarray:
 
         result = img.astype(np.int32).copy()
 
-        result[:, :, channel] = np.clip(
-            result[:, :, channel] + self.value,
-            0,
-            255
-        )
+        result[:, :, 0] = np.clip(result[:, :, 0] + self.value, 0, 255)
+
+        return result.astype(np.uint8)
+
+
+class GreenAdjust:
+    """
+    Adjusts the green channel intensity.
+    """
+
+    def __init__(self, value: int = 0):
+        self.value = value
+
+    def apply(self, img: np.ndarray) -> np.ndarray:
+
+        result = img.astype(np.int32).copy()
+
+        result[:, :, 1] = np.clip(result[:, :, 1] + self.value, 0, 255)
+
+        return result.astype(np.uint8)
+
+
+class BlueAdjust:
+    """
+    Adjusts the blue channel intensity.
+    """
+
+    def __init__(self, value: int = 0):
+        self.value = value
+
+    def apply(self, img: np.ndarray) -> np.ndarray:
+
+        result = img.astype(np.int32).copy()
+
+        result[:, :, 2] = np.clip(result[:, :, 2] + self.value, 0, 255)
 
         return result.astype(np.uint8)
