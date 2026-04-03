@@ -1,4 +1,6 @@
 import tkinter as tk
+from PIL import Image, ImageTk
+
 from core.brush.presets import (
     create_hard_brush,
     create_eraser
@@ -6,105 +8,99 @@ from core.brush.presets import (
 
 
 class ToolsPanel(tk.Frame):
-    """Left panel containing editor tools with icons."""
+    """Tools panel with icon-only buttons."""
 
     def __init__(self, parent, controller=None):
-        """Initialize the tools panel."""
+        """Initialize panel."""
+        super().__init__(parent, width=80, bg="#2c2c2c")
 
-        super().__init__(parent, width=120, bg="#2c2c2c")
         self.controller = controller
         self.icons = self._load_icons()
+        self.buttons = {}
+
         self._build()
 
+    def _load_icon(self, path):
+        """Load and resize icon."""
+
+        img = Image.open(path)
+        img = img.resize((42, 42), Image.LANCZOS)
+        return ImageTk.PhotoImage(img)
+
     def _load_icons(self):
-        """Load tool icons from assets/icons folder."""
+        """Load all icons."""
 
         return {
-            "Brush": tk.PhotoImage(file="assets/icons/brush.png"),
-            "Eraser": tk.PhotoImage(file="assets/icons/eraser.png"),
-            "Select": tk.PhotoImage(file="assets/icons/select.png"),
-            "Paint Bucket": tk.PhotoImage(file="assets/icons/paint_bucket.png"),
-            "Eyedropper": tk.PhotoImage(file="assets/icons/eyedropper.png"),
-            "Magic Wand": tk.PhotoImage(file="assets/icons/magic_wand.png"),
+            "Brush": self._load_icon("assets/icons/brush.png"),
+            "Eraser": self._load_icon("assets/icons/eraser.png"),
+            "Select": self._load_icon("assets/icons/select.png"),
+            "Paint Bucket": self._load_icon("assets/icons/paint_bucket.png"),
+            "Eyedropper": self._load_icon("assets/icons/eyedropper.png"),
+            "Magic Wand": self._load_icon("assets/icons/magic_wand.png"),
         }
 
     def _build(self):
-        """Create tool buttons dynamically with icons."""
+        """Create tool buttons."""
 
-        tk.Label(
-            self,
-            text="Tools",
-            bg="#2c2c2c",
-            fg="white"
-        ).pack(pady=10)
-
-        # Tool definitions: name, callback
         tools = [
-            ("Brush", self._select_brush),
-            ("Eraser", self._select_eraser),
-            ("Select", self._select_select),
-            ("Paint Bucket", self._select_paint_bucket),
-            ("Eyedropper", self._select_eyedropper),
-            ("Magic Wand", self._select_magic_wand),
+            ("Brush", lambda: self._select_tool("brush", create_hard_brush((0, 0, 0, 255)))),
+            ("Eraser", lambda: self._select_tool("eraser", create_eraser())),
+            ("Select", lambda: self._select_tool("select")),
+            ("Paint Bucket", lambda: self._select_tool("paint_bucket")),
+            ("Eyedropper", lambda: self._select_tool("eyedropper")),
+            ("Magic Wand", lambda: self._select_tool("magic_wand")),
         ]
 
         for name, command in tools:
-            icon = self.icons.get(name)
-            tk.Button(
+            btn = tk.Button(
                 self,
-                text=name,
-                image=icon,
-                compound="left",  # icon + text
-                command=command
-            ).pack(fill="x", pady=5)
+                image=self.icons[name],
+                command=command,
+                bg="#2c2c2c",
+                activebackground="#2c2c2c",
+                bd=0,
+                highlightthickness=0,
+                relief="flat",
+                cursor="hand2"
+            )
 
-    def _select_brush(self):
-        """Select painting tool with default brush."""
-        if not self.controller:
-            return
+            btn.pack(pady=6)
 
-        self.controller.state.set_tool("brush")
-        color = (0, 0, 0, 255)
-        brush = create_hard_brush(color)
-        self.controller.state.set_brush(brush)
+            # Hover effect
+            btn.bind("<Enter>", lambda e: e.widget.config(bg="#3a3a3a"))
+            btn.bind("<Leave>", lambda e: e.widget.config(bg="#2c2c2c"))
 
-    def _select_eraser(self):
-        """Select eraser tool."""
-        if not self.controller:
-            return
+            self.buttons[name] = btn
 
-        self.controller.state.set_tool("eraser")
-        brush = create_eraser()
-        self.controller.state.set_brush(brush)
-
-    def _select_select(self):
-        """Select selection tool (not yet implemented)."""
+    def _select_tool(self, tool_name, brush=None):
+        """Set active tool."""
 
         if not self.controller:
             return
 
-        self.controller.state.set_tool("select")
+        self.controller.request_set_tool(tool_name)
 
-    def _select_paint_bucket(self):
-        """Select paint bucket tool (not yet implemented)."""
+        if brush:
+            self.controller.state.set_brush(brush)
 
-        if not self.controller:
-            return
+        self._highlight(tool_name)
 
-        self.controller.state.set_tool("paint_bucket")
+    def _highlight(self, tool_name):
+        """Highlight selected tool."""
 
-    def _select_eyedropper(self):
-        """Select eyedropper tool (not yet implemented)."""
+        mapping = {
+            "brush": "Brush",
+            "eraser": "Eraser",
+            "select": "Select",
+            "paint_bucket": "Paint Bucket",
+            "eyedropper": "Eyedropper",
+            "magic_wand": "Magic Wand",
+        }
 
-        if not self.controller:
-            return
+        selected = mapping.get(tool_name)
 
-        self.controller.state.set_tool("eyedropper")
-
-    def _select_magic_wand(self):
-        """Select magic wand tool (not yet implemented)."""
-
-        if not self.controller:
-            return
-
-        self.controller.state.set_tool("magic_wand")
+        for name, btn in self.buttons.items():
+            if name == selected:
+                btn.config(bg="#505050")
+            else:
+                btn.config(bg="#2c2c2c")
