@@ -4,6 +4,8 @@ import os
 from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
 from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
+from services.brushes.color_picker_service import ColorPickerService
+from services.brushes.fill_service import FillService
 from core.brush.brush_core import BrushPoint
 
 class AppController:
@@ -29,7 +31,8 @@ class AppController:
         self.file_service = file_service
         self.recent_manager = recent_manager
         self.image_service = ImageService()
-
+        self.color_picker_service = ColorPickerService()
+        self.fill_service = FillService()
     # ==========================================================
     # HOME
     # ==========================================================
@@ -302,4 +305,40 @@ class AppController:
         normalized_value = self.normalize_value(value)
 
         self.state.update_layer_filter_param(param_name, normalized_value)
+        self.refresh_canvas()
+
+    # ==========================================================
+    # Tools
+    # ==========================================================
+
+    def handle_eyedropper(self, x, y):
+        """Handle eyedropper."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        color = self.color_picker_service.pick_color(layer, x, y)
+
+        if color:
+            self.state.set_color(color)
+
+    def handle_fill(self, x, y):
+        """Apply flood fill on selected layer."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        image = layer.image
+        width, height = image.size
+
+        if not (0 <= x < width and 0 <= y < height):
+            return
+
+        color = self.state.get_color()
+
+        self.fill_service.fill(layer, x, y, color)
+
+        self.state.notify()
         self.refresh_canvas()

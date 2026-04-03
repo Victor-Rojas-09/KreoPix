@@ -21,6 +21,8 @@ class AppState:
         self._listeners = []
 
         self.current_brush = create_hard_brush((0, 0, 0, 255))
+        self.current_color = (0, 0, 0, 255)
+        self.recent_colors = []
 
     # ==========================================================
     # Document
@@ -199,7 +201,10 @@ class AppState:
     # ==========================================================
 
     def update_layer_filter_param(self, param_name, value):
+        """Update the current layer filter parameter."""
+
         layer = self.get_selected_layer()
+
         if not layer:
             return
 
@@ -211,16 +216,70 @@ class AppState:
 
 
     def set_layer_filter(self, filter_id: str):
-        """
-        Set the filter ID for the currently selected layer.
+        """Set the filter ID for the currently selected layer."""
 
-        Args:
-            filter_id (str): The key of the filter in the registry.
-        """
         layer = self.get_selected_layer()
+
         if layer:
             layer.filter_id = filter_id
-            # Ensure filter_params dictionary exists
+
+            # Ensure filter_params exists
             if not hasattr(layer, "filter_params") or layer.filter_params is None:
                 layer.filter_params = {}
             self.notify()
+
+    # ==========================================================
+    # Color
+    # ==========================================================
+    def set_color(self, color: tuple):
+        """Set active color and update history."""
+
+        self.current_color = color
+        self._push_recent_color(color)
+
+        # Sync with brush automatically
+        if self.current_brush:
+            self.current_brush.brush_color = color
+
+        self.notify()
+
+    def get_color(self):
+        """Get active color."""
+
+        return self.current_color
+
+    def get_recent_colors(self):
+        """Get all recent colors."""
+
+        return self.recent_colors
+
+    def _push_recent_color(self, color):
+        """Push recent color if the color is set."""
+
+        if color in self.recent_colors:
+            self.recent_colors.remove(color)
+
+        self.recent_colors.insert(0, color)
+        self.recent_colors = self.recent_colors[:10]
+
+    def set_color(self, color):
+        """Set active color and update history."""
+
+        self.current_color = color
+        self.add_recent_color(color)
+
+    def add_recent_color(self, color):
+        """Add recent color to the history."""
+
+        if color in self.recent_colors:
+            self.recent_colors.remove(color)
+
+        self.recent_colors.insert(0, color)
+
+        if len(self.recent_colors) > 9:
+            self.recent_colors = self.recent_colors[:9]
+
+    def get_recent_colors(self):
+        """Get all recent colors."""
+
+        return self.recent_colors
