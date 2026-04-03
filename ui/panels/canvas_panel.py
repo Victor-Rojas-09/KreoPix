@@ -99,19 +99,36 @@ class CanvasPanel(tk.Frame):
     # =========================================================
 
     def _on_mouse_down(self, event):
-        """Start a new brush stroke."""
+        """Handle mouse press based on active tool."""
 
-        if not self._brush_active():
+        if not self.controller:
             return
 
-        self._stroke_points = [
-            self.transform.canvas_to_image(event.x, event.y)
-        ]
+        tool = self.controller.state.current_tool
+
+        x, y = self.transform.canvas_to_image(event.x, event.y)
+
+        if tool == "brush":
+            self._stroke_points = [(x, y)]
+
+        elif tool == "eyedropper":
+            color = self.controller.handle_eyedropper(x, y)
+            if color:
+                self.controller.state.set_color(color)
+                self.controller.color_tab_frame._refresh_color_bar()
+
+        elif tool == "paint_bucket":
+            self.controller.handle_fill(x, y)
 
     def _on_mouse_move(self, event):
-        """Continue recording a brush stroke while the mouse moves."""
+        """Handle mouse drag."""
 
-        if not self._brush_active():
+        if not self.controller:
+            return
+
+        tool = self.controller.state.current_tool
+
+        if tool != "brush":
             return
 
         self._stroke_points.append(
@@ -119,16 +136,21 @@ class CanvasPanel(tk.Frame):
         )
 
     def _on_mouse_up(self, event):
-        """Finalize and apply the brush stroke."""
-        if not self._brush_active():
+        """Finalize brush stroke."""
+
+        if not self.controller:
+            return
+
+        tool = self.controller.state.current_tool
+
+        if tool != "brush":
             return
 
         self._stroke_points.append(
             self.transform.canvas_to_image(event.x, event.y)
         )
 
-        if self.controller:
-            self.controller.handle_paint_stroke(self._stroke_points)
+        self.controller.handle_paint_stroke(self._stroke_points)
 
         self._stroke_points = []
 

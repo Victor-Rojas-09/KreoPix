@@ -32,7 +32,7 @@ class BrushPanel(tk.Frame):
         brushes = [
             {"factory": create_hard_brush, "icon": "hard.png"},
             {"factory": create_airbrush, "icon": "airbrush.png"},
-            {"factory": create_eraser, "icon": "eraser.png"},
+            {"factory": create_eraser, "icon": "eraser_brush.png"},
         ]
 
         for b in brushes:
