@@ -6,7 +6,7 @@ class ColorPanel(tk.Frame):
     """Panel for color selection and image adjustments."""
 
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="#444")
+        super().__init__(parent, bg="#2b2b2b")  # fondo general más neutro
         self.controller = controller
         self._build()
 
@@ -14,23 +14,30 @@ class ColorPanel(tk.Frame):
         """Build the tab bar and container for tab frames."""
 
         # Tab bar
-        tab_bar = tk.Frame(self, bg="#222")
-        tab_bar.pack(fill="x", side="top")
+        self.tab_bar = tk.Frame(self, bg="#1f1f1f")
+        self.tab_bar.pack(fill="x", side="top")
+
 
         self.color_tab_btn = tk.Button(
-            tab_bar, text="Color", bg="#666", fg="white",
-            relief="raised", command=lambda: self._show_tab("color")
+            self.tab_bar, text="Color",
+            bg="#3a3a3a", fg="white",
+            bd=0, relief="flat",
+            activebackground="#3a3a3a",
+            command=lambda: self._show_tab("color")
         )
-        self.color_tab_btn.pack(side="left", padx=2, pady=2)
+        self.color_tab_btn.pack(side="left", padx=(4, 2), pady=(4, 0))
 
         self.channels_tab_btn = tk.Button(
-            tab_bar, text="Channels", bg="#444", fg="white",
-            relief="flat", command=lambda: self._show_tab("channels")
+            self.tab_bar, text="Channels",
+            bg="#2a2a2a", fg="#cccccc",
+            bd=0, relief="flat",
+            activebackground="#3a3a3a",
+            command=lambda: self._show_tab("channels")
         )
-        self.channels_tab_btn.pack(side="left", padx=2, pady=2)
+        self.channels_tab_btn.pack(side="left", padx=2, pady=(4, 0))
 
-        # Container for tab frames
-        self.tab_container = tk.Frame(self, bg="#333")
+        # Container
+        self.tab_container = tk.Frame(self, bg="#3a3a3a")
         self.tab_container.pack(fill="both", expand=True)
 
         # Create tab frames
@@ -47,18 +54,14 @@ class ColorPanel(tk.Frame):
         for child in self.tab_container.winfo_children():
             child.pack_forget()
 
-        # Reset tab button styles
-        self.color_tab_btn.config(relief="flat", bg="#444")
-        self.channels_tab_btn.config(relief="flat", bg="#444")
+        # Reset
+        self.color_tab_btn.config(bg="#2a2a2a", fg="#cccccc")
+        self.channels_tab_btn.config(bg="#2a2a2a", fg="#cccccc")
 
-        # Show selected tab
+        # Active
         if tab_name == "color":
             self.color_tab.pack(fill="both", expand=True)
-            self.color_tab_btn.config(relief="raised", bg="#666")
+            self.color_tab_btn.config(bg="#3a3a3a", fg="white")
         elif tab_name == "channels":
             self.channels_tab.pack(fill="both", expand=True)
-            self.channels_tab_btn.config(relief="raised", bg="#666")
-
-
-
-
+            self.channels_tab_btn.config(bg="#3a3a3a", fg="white")
