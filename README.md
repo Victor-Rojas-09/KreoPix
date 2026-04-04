@@ -1,30 +1,13 @@
 # KreoPix
 
-**KreoPix** is an open-source image editing application built in Python that explores how modern software engineering practices can be applied to desktop tools.
+**KreoPix** is an open-source image editing application developed in Python.
 
-At its core, KreoPix is designed as a **learning-driven project**: not just to edit images, but to demonstrate how to structure a complex application in a clean, scalable, and maintainable way. It combines a multi-layer canvas system, custom brush engines, and image processing capabilities with a carefully designed architecture that separates responsibilities across the entire system.
-
-The application is built using `tkinter` for the graphical interface and leverages `Pillow`, `OpenCV-Python` and `NumPy` for image processing.
-
----
-
-## 🏗️ Architecture
-
-KreoPix is organized using a **layered architecture combined with the MVC pattern**, ensuring that each part of the system has a clear and isolated responsibility.
-
-
-### How it works
-
-* The **UI Layer** captures user interactions and renders the application.
-* The **Controller Layer** interprets those actions and decides what should happen.
-* The **Services Layer** contains the actual business logic (image processing, brushes, file handling).
-* The **Core Layer** represents the application state and domain models.
-
-The entire system is initialized through a central entry point (`AppRoot`), which wires dependencies together and starts the application lifecycle.
+The application is built using `tkinter` for the graphical user interface and leverages `Pillow`, `OpenCV-Python`, and `NumPy` for image processing.
+It is also organized using a **layered architecture combined with the MVC architectural pattern**, ensuring that each part of the system has a clear and isolated responsibility.
 
 ---
 
-## ▶️ Getting Started
+## Getting Started
 
 ### 1. Clone the repository
 
@@ -47,7 +30,7 @@ python -m KreoPix
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 Detailed documentation, development notes, and the user manual are available here:
 
