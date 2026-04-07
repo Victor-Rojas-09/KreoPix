@@ -1,4 +1,5 @@
 from core.brush.brush_core import BaseBrushType, BrushFactory
+from services.brushes.brush_cache import BrushCache
 
 class AirbrushType(BaseBrushType):
     """Soft brush with low opacity for smooth, airbrush like effects."""
@@ -40,6 +41,14 @@ class EraserType(BaseBrushType):
     def __init__(self, size=60, opacity=100):
         """Initialize eraser with full opacity and soft edges."""
         super().__init__(size=size, opacity=opacity, soft=True)
+
+    def apply(self, engine, point, color=None):
+        """Erase alpha using the brush mask."""
+
+        size = self.get_size(point)
+        strength = self.get_opacity(point)
+        mask = BrushCache.get_mask(size, self.soft)
+        engine.apply_eraser(mask, point.x, point.y, strength)
 
 
 def create_airbrush(color):

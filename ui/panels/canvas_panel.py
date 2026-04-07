@@ -3,6 +3,7 @@ from ui.utils.tools.custom_slider import BlueSlider
 from ui.utils.tools.canvas_transform import CanvasTransform
 from ui.utils.tools.image_renderer import ImageRenderer
 
+_STROKE_TOOLS = frozenset({"brush", "eraser"})
 
 class CanvasPanel(tk.Frame):
     """Central canvas panel responsible for rendering and interacting with the image."""
@@ -108,14 +109,16 @@ class CanvasPanel(tk.Frame):
 
         x, y = self.transform.canvas_to_image(event.x, event.y)
 
-        if tool == "brush":
+        if tool in _STROKE_TOOLS:
             self._stroke_points = [(x, y)]
 
         elif tool == "eyedropper":
             color = self.controller.handle_eyedropper(x, y)
             if color:
                 self.controller.state.set_color(color)
-                self.controller.color_tab_frame._refresh_color_bar()
+                refresh = getattr(self.controller, "color_bar_refresh", None)
+                if callable(refresh):
+                    refresh()
 
         elif tool == "paint_bucket":
             self.controller.handle_fill(x, y)
@@ -128,7 +131,7 @@ class CanvasPanel(tk.Frame):
 
         tool = self.controller.state.current_tool
 
-        if tool != "brush":
+        if tool not in _STROKE_TOOLS:
             return
 
         self._stroke_points.append(
@@ -143,7 +146,7 @@ class CanvasPanel(tk.Frame):
 
         tool = self.controller.state.current_tool
 
-        if tool != "brush":
+        if tool not in _STROKE_TOOLS:
             return
 
         self._stroke_points.append(
@@ -157,7 +160,8 @@ class CanvasPanel(tk.Frame):
     def _brush_active(self):
         """Check if brush tool is active."""
 
-        return self.controller and self.controller.state.current_tool == "brush"
+        t = self.controller.state.current_tool if self.controller else None
+        return t in _STROKE_TOOLS
 
     def _update_toolbar_visibility(self):
         """Show or hide brush toolbar based on active tool."""
@@ -199,7 +203,10 @@ class CanvasPanel(tk.Frame):
         if self.current_image is None:
             return
 
-        self.tk_image, data = ImageRenderer.render(self.canvas, self.current_image)
+        tk_image, data = ImageRenderer.render(self.canvas, self.current_image)
+        if tk_image is None:
+            return
 
+        self.tk_image = tk_image
         canvas_w, canvas_h, img_w, img_h = data
         self.transform.update(canvas_w, canvas_h, img_w, img_h)

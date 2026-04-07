@@ -77,8 +77,11 @@ class Brush:
     def apply_stroke(self, layer, points, color=None):
         """Apply a continuous stroke across a sequence of points."""
 
-        if not points or len(points) < 2:
+        if not points:
             return
+
+        if len(points) == 1:
+            points = [points[0], points[0]]
 
         color = color or (0, 0, 0, 255)
         self.engine.begin_stroke(layer)

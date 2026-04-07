@@ -1,4 +1,6 @@
+import numpy as np
 from PIL import Image
+
 
 class BrushEngine:
     """Handles low-level brush rendering using an off-screen buffer."""
@@ -40,21 +42,31 @@ class BrushEngine:
         )
 
     def apply_eraser(self, mask, x, y, strength):
-        """Apply an erasing effect by reducing alpha in the buffer."""
+        """Reduce alpha under the mask (destination stays RGB; only A scales down)."""
 
         if self.buffer is None:
             return
 
         size = mask.size[0]
         half = size // 2
+        bx0, by0 = int(x - half), int(y - half)
+        bw, bh = self.buffer.size
 
-        alpha = mask.point(lambda a: int(a * strength))
+        ix0 = max(0, bx0)
+        iy0 = max(0, by0)
+        ix1 = min(bw, bx0 + size)
+        iy1 = min(bh, by0 + size)
+        if ix0 >= ix1 or iy0 >= iy1:
+            return
 
-        erase_layer = Image.new("RGBA", self.buffer.size, (0, 0, 0, 0))
-        erase_layer.paste(
-            Image.merge("RGBA", (alpha, alpha, alpha, alpha)),
-            (int(x - half), int(y - half)),
-            alpha
-        )
+        mx0 = ix0 - bx0
+        my0 = iy0 - by0
+        mx1 = mx0 + (ix1 - ix0)
+        my1 = my0 + (iy1 - iy0)
 
-        self.buffer = Image.alpha_composite(self.buffer, erase_layer)
+        m = np.asarray(mask.crop((mx0, my0, mx1, my1)).convert("L"), dtype=np.float32) / 255.0
+        f = np.clip(1.0 - m * float(strength), 0.0, 1.0)
+        buf = np.array(self.buffer)
+        sub = buf[iy0:iy1, ix0:ix1, :]
+        sub[..., 3] = np.clip(sub[..., 3].astype(np.float32) * f, 0, 255).astype(np.uint8)
+        self.buffer = Image.fromarray(buf, "RGBA")

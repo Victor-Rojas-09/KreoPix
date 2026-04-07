@@ -261,25 +261,3 @@ class AppState:
 
         self.recent_colors.insert(0, color)
         self.recent_colors = self.recent_colors[:10]
-
-    def set_color(self, color):
-        """Set active color and update history."""
-
-        self.current_color = color
-        self.add_recent_color(color)
-
-    def add_recent_color(self, color):
-        """Add recent color to the history."""
-
-        if color in self.recent_colors:
-            self.recent_colors.remove(color)
-
-        self.recent_colors.insert(0, color)
-
-        if len(self.recent_colors) > 9:
-            self.recent_colors = self.recent_colors[:9]
-
-    def get_recent_colors(self):
-        """Get all recent colors."""
-
-        return self.recent_colors

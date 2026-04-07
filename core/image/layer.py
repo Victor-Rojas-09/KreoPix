@@ -1,5 +1,6 @@
 from PIL import Image
 
+
 class Layer:
     """Represents a single image layer."""
 
@@ -23,9 +24,8 @@ class Layer:
         if img is None or self.opacity == 100:
             return img.copy()
 
-        alpha = int(255 * (self.opacity / 100))
-
-        result = img.copy()
-        result.putalpha(alpha)
-
-        return result
+        result = img.copy().convert("RGBA")
+        r, g, b, a = result.split()
+        factor = self.opacity / 100.0
+        a = a.point(lambda p: int(p * factor))
+        return Image.merge("RGBA", (r, g, b, a))
