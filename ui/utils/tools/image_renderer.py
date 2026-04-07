@@ -8,7 +8,7 @@ class ImageRenderer:
     This includes:
     - Scaling the image while maintaining aspect ratio
     - Centering the image inside the canvas
-    - Converting PIL images into Tkinter-compatible images
+    - Converting PIL images into Tkinter-compatible PhotoImage instances
     """
 
     @staticmethod
@@ -20,10 +20,18 @@ class ImageRenderer:
         canvas_h = canvas.winfo_height()
         img_w, img_h = pil_image.size
 
+        meta = (canvas_w, canvas_h, img_w, img_h)
+
+        if canvas_w < 1 or canvas_h < 1:
+            return None, meta
+
         scale = min(canvas_w / img_w, canvas_h / img_h)
 
         new_w = int(img_w * scale)
         new_h = int(img_h * scale)
+
+        if new_w < 1 or new_h < 1:
+            return None, meta
 
         resized = pil_image.resize((new_w, new_h), Image.Resampling.LANCZOS)
         tk_image = ImageTk.PhotoImage(resized)
@@ -36,4 +44,4 @@ class ImageRenderer:
             anchor="center"
         )
 
-        return tk_image, (canvas_w, canvas_h, img_w, img_h)
+        return tk_image, meta

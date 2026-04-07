@@ -205,7 +205,7 @@ class AppController:
 
         # Insert new layer after selected index
         index = self.state.selected_layer_index
-        document.add_layer(name=name)
+        document.add_layer(name=name, insert_at=index + 1)
 
         self.state.set_selected_layer(index + 1)
 

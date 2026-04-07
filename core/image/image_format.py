@@ -48,14 +48,18 @@ class ImageFormat:
                 base = Image.alpha_composite(base, img)
         return base
 
-    def add_layer(self, name="Layer"):
-        """Add a new layer to the document."""
+    def add_layer(self, name="Layer", insert_at=None):
+        """Add a new layer. If insert_at is set, inserts at that index (0 = bottom)."""
 
         new_layer = Layer(
             Image.new("RGBA", (self.width, self.height), (0, 0, 0, 0)),
             name=name
         )
-        self.layers.append(new_layer)
+        if insert_at is None:
+            self.layers.append(new_layer)
+        else:
+            insert_at = max(0, min(int(insert_at), len(self.layers)))
+            self.layers.insert(insert_at, new_layer)
         return new_layer
 
     def composite(self, blend_service=None, filter_service=None):
