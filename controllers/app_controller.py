@@ -6,6 +6,14 @@ from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
 from services.brushes.color_picker_service import ColorPickerService
 from services.brushes.fill_service import FillService
+from services.history import (
+    AddLayerCommand,
+    CommandHistory,
+    RemoveLayerCommand,
+    ReplaceLayerFilterStateCommand,
+    ReplaceLayerImageCommand,
+    ReplaceLayerOpacityCommand,
+)
 from core.brush.brush_core import BrushPoint
 
 class AppController:
@@ -33,6 +41,74 @@ class AppController:
         self.image_service = ImageService()
         self.color_picker_service = ColorPickerService()
         self.fill_service = FillService()
+        self._history = CommandHistory(max_steps=50)
+        self._bind_edit_shortcuts()
+
+    # ==========================================================
+    # UNDO / REDO
+    # ==========================================================
+
+    def _clear_history(self):
+        """Reset undo/redo when the document is replaced or closed."""
+
+        self._history.clear()
+
+    def can_undo(self) -> bool:
+        return self._history.can_undo()
+
+    def can_redo(self) -> bool:
+        return self._history.can_redo()
+
+    def request_undo(self):
+        """Undo the last document change."""
+
+        if not self.state.has_format():
+            return
+        if self._history.undo():
+            self.state.notify()
+            self.refresh_layers()
+            self.refresh_canvas()
+
+    def request_redo(self):
+        """Redo the last undone change."""
+
+        if not self.state.has_format():
+            return
+        if self._history.redo():
+            self.state.notify()
+            self.refresh_layers()
+            self.refresh_canvas()
+
+    def _is_editor_screen(self) -> bool:
+        from ui.screens.editor_screen import EditorScreen
+
+        return isinstance(self.layout.current_screen, EditorScreen)
+
+    def _bind_edit_shortcuts(self):
+        """Global shortcuts; only act while the editor screen is active."""
+
+        self.root.bind_all("<Control-z>", self._shortcut_undo)
+        self.root.bind_all("<Control-y>", self._shortcut_redo)
+        self.root.bind_all("<Control-Shift-Z>", self._shortcut_redo)
+
+    def _shortcut_undo(self, event=None):
+        if self._is_editor_screen() and self.state.has_format():
+            self.request_undo()
+            return "break"
+
+    def _shortcut_redo(self, event=None):
+        if self._is_editor_screen() and self.state.has_format():
+            self.request_redo()
+            return "break"
+
+    def _push_layer_pixel_command(self, layer, image_before, image_after, description: str):
+        """Record brush/fill/eraser if pixels actually changed."""
+
+        if image_before.tobytes() == image_after.tobytes():
+            return
+        cmd = ReplaceLayerImageCommand(layer, image_before, image_after, description=description)
+        self._history.push(cmd)
+
     # ==========================================================
     # HOME
     # ==========================================================
@@ -67,6 +143,7 @@ class AppController:
         if not document:
             return
 
+        self._clear_history()
         self.state.set_format(document)
         if path:
             self.recent_manager.add_recent(path)
@@ -78,6 +155,7 @@ class AppController:
 
         try:
             document = self.file_service.open_from_path(path)
+            self._clear_history()
             self.state.set_format(document)
             self.recent_manager.add_recent(path)
             self._go_to_editor(document)
@@ -112,6 +190,7 @@ class AppController:
     def request_back_home(self):
         """Return to home screen."""
 
+        self._clear_history()
         self.state.clear_format()
         self.load_home()
 
@@ -130,6 +209,7 @@ class AppController:
         # Add initial editable transparent layer
         document.add_layer(name="Layer 1")
 
+        self._clear_history()
         self.state.set_format(document)
         self.state.set_selected_layer(len(document.get_layers()) - 1)
 
@@ -205,9 +285,15 @@ class AppController:
 
         # Insert new layer after selected index
         index = self.state.selected_layer_index
-        document.add_layer(name=name, insert_at=index + 1)
+        insert_at = index + 1
+        document.add_layer(name=name, insert_at=insert_at)
 
-        self.state.set_selected_layer(index + 1)
+        self.state.set_selected_layer(insert_at)
+
+        added = document.layers[insert_at]
+        self._history.push(
+            AddLayerCommand(self.state, document, insert_at, added)
+        )
 
         # Refresh the canvas after adding
         self.refresh_layers()
@@ -220,12 +306,38 @@ class AppController:
         self.refresh_layers()
         self.refresh_canvas()
 
+    def request_update_layer_opacity(self, layer, opacity: int):
+        """Update layer opacity with undo support."""
+
+        if not layer:
+            return
+
+        before = layer.opacity
+        self.state.update_layer_opacity(layer, opacity)
+        after = layer.opacity
+        if before != after:
+            self._history.push(
+                ReplaceLayerOpacityCommand(layer, before, after)
+            )
+
     def remove_selected_layer(self):
         """Remove currently selected layer via state."""
 
-        if self.state:
-            self.state.remove_selected_layer()
+        if not self.state:
+            return
 
+        layers = self.state.get_layers()
+        if not layers:
+            return
+
+        idx = self.state.selected_layer_index
+        removed_snapshot = layers[idx]
+        cmd = RemoveLayerCommand(self.state, idx, removed_snapshot)
+        self.state.remove_selected_layer()
+        self._history.push(cmd)
+
+        self.refresh_layers()
+        self.refresh_canvas()
 
 
     # ==========================================================
@@ -247,10 +359,16 @@ class AppController:
         if not brush:
             return
 
+        image_before = layer.image.copy()
+
         # Convert raw points to BrushPoint
         brush_points = [BrushPoint(x=p[0], y=p[1], pressure=1.0) for p in points]
 
         brush.apply_stroke(layer.image, brush_points, getattr(brush, "brush_color", (0, 0, 0, 255)))
+
+        image_after = layer.image.copy()
+        stroke_label = "Eraser" if self.state.get_tool() == "eraser" else "Brush"
+        self._push_layer_pixel_command(layer, image_before, image_after, stroke_label)
 
         self.state.notify()
         self.refresh_canvas()
@@ -292,7 +410,18 @@ class AppController:
         if not layer:
             return
 
+        before_id = layer.filter_id
+        before_params = dict(layer.filter_params or {})
         self.state.set_layer_filter(filter_id)
+        after_id = layer.filter_id
+        after_params = dict(layer.filter_params or {})
+        if before_id != after_id or before_params != after_params:
+            self._history.push(
+                ReplaceLayerFilterStateCommand(
+                    layer, before_id, before_params, after_id, after_params
+                )
+            )
+
         self.refresh_canvas()
 
     def request_update_filter_param(self, param_name: str, value):
@@ -302,9 +431,22 @@ class AppController:
         if not layer:
             return
 
+        before_id = layer.filter_id
+        before_params = dict(layer.filter_params or {})
+
         normalized_value = self.normalize_value(value)
 
         self.state.update_layer_filter_param(param_name, normalized_value)
+
+        after_id = layer.filter_id
+        after_params = dict(layer.filter_params or {})
+        if before_id != after_id or before_params != after_params:
+            self._history.push(
+                ReplaceLayerFilterStateCommand(
+                    layer, before_id, before_params, after_id, after_params
+                )
+            )
+
         self.refresh_canvas()
 
     # ==========================================================
@@ -338,7 +480,10 @@ class AppController:
 
         color = self.state.get_color()
 
+        image_before = layer.image.copy()
         self.fill_service.fill(layer, x, y, color)
+        image_after = layer.image.copy()
+        self._push_layer_pixel_command(layer, image_before, image_after, "Fill")
 
         self.state.notify()
         self.refresh_canvas()

@@ -5,6 +5,7 @@ from ui.utils.tools.image_renderer import ImageRenderer
 
 _STROKE_TOOLS = frozenset({"brush", "eraser"})
 
+
 class CanvasPanel(tk.Frame):
     """Central canvas panel responsible for rendering and interacting with the image."""
 

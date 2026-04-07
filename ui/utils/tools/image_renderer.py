@@ -14,6 +14,7 @@ class ImageRenderer:
     @staticmethod
     def render(canvas, pil_image):
         """Render a PIL image into the given canvas."""
+
         canvas.update_idletasks()
 
         canvas_w = canvas.winfo_width()
