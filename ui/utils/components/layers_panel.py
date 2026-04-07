@@ -164,7 +164,7 @@ class LayersPanel(tk.Frame):
         layer = self.controller.state.get_selected_layer()
 
         if layer:
-            self.controller.state.update_layer_opacity(layer, value)
+            self.controller.request_update_layer_opacity(layer, value)
 
     def _on_add_layer(self):
         """Request controller to add new layer."""

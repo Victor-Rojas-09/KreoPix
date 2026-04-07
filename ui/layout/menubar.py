@@ -45,3 +45,19 @@ class MenuBar:
         )
 
         self.menu.add_cascade(label="File", menu=file_menu)
+
+        edit_menu = tk.Menu(self.menu, tearoff=0)
+
+        edit_menu.add_command(
+            label="Undo",
+            command=self.controller.request_undo,
+            accelerator="Ctrl+Z",
+        )
+
+        edit_menu.add_command(
+            label="Redo",
+            command=self.controller.request_redo,
+            accelerator="Ctrl+Y",
+        )
+
+        self.menu.add_cascade(label="Edit", menu=edit_menu)
