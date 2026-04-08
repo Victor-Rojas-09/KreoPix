@@ -1,11 +1,11 @@
 import tkinter as tk
-
 from tkinter import ttk
+
 from ui.utils.tools.window_positioner import WindowPositioner
 
 
 class NewProjectDialog(tk.Toplevel):
-    """Dialog for new project."""
+    """Dialog for creating a new project with name and canvas size."""
 
     def __init__(self, parent, on_confirm):
         """Initialize dialog."""
@@ -18,7 +18,12 @@ class NewProjectDialog(tk.Toplevel):
         self.title("New Project")
         self.resizable(False, False)
 
-        WindowPositioner.center_to_parent(self, parent, 340, 220)
+        try:
+            self.iconbitmap("assets/app/LOGO.ico")
+        except tk.TclError:
+            pass
+
+        WindowPositioner.center_to_parent(self, parent, 380, 280)
 
         self.transient(parent)
         self.grab_set()
@@ -28,61 +33,101 @@ class NewProjectDialog(tk.Toplevel):
     def _build(self):
         """Build dialog UI."""
 
-        container = ttk.Frame(self, padding=20)
-        container.pack(fill="both", expand=True)
+        outer = tk.Frame(self, bg="#2b2b2b")
+        outer.pack(fill="both", expand=True)
 
-        ttk.Label(
-            container,
-            text="Create New Canvas",
-            font=("Arial", 14)
-        ).pack(pady=(0, 15))
-        self._build_inputs(container)
-        self._build_buttons(container)
+        header = tk.Frame(outer, bg="#2b2b2b")
+        header.pack(fill="x", padx=20, pady=(20, 8))
 
+        tk.Label(
+            header,
+            text="New project",
+            font=("Segoe UI", 16, "bold"),
+            bg="#2b2b2b",
+            fg="#f0f0f0",
+        ).pack(anchor="w")
 
-    def _build_inputs(self, parent):
-        """Create size inputs."""
+        tk.Label(
+            header,
+            text="Choose a name and canvas size",
+            font=("Segoe UI", 9),
+            bg="#2b2b2b",
+            fg="#aaaaaa",
+        ).pack(anchor="w", pady=(4, 0))
 
-        form = ttk.Frame(parent)
-        form.pack(fill="x")
+        form = tk.Frame(outer, bg="#2b2b2b")
+        form.pack(fill="x", padx=20, pady=10)
 
-        ttk.Label(form, text="Width").grid(row=0, column=0, sticky="w")
-        ttk.Label(form, text="Height").grid(row=1, column=0, sticky="w")
+        tk.Label(form, text="Project name", bg="#2b2b2b", fg="#e0e0e0").grid(
+            row=0, column=0, sticky="w", pady=(0, 6)
+        )
+        self.name_var = tk.StringVar(value="Untitled")
+        name_entry = tk.Entry(
+            form,
+            textvariable=self.name_var,
+            width=32,
+            font=("Segoe UI", 10),
+            bg="#3c3c3c",
+            fg="#f0f0f0",
+            insertbackground="#ffffff",
+            relief="flat",
+        )
+        name_entry.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(0, 14))
+
+        tk.Label(form, text="Width", bg="#2b2b2b", fg="#e0e0e0").grid(row=2, column=0, sticky="w")
+        tk.Label(form, text="Height", bg="#2b2b2b", fg="#e0e0e0").grid(row=3, column=0, sticky="w")
 
         self.width_var = tk.IntVar(value=800)
         self.height_var = tk.IntVar(value=600)
 
-        ttk.Entry(
+        tk.Entry(
             form,
             textvariable=self.width_var,
-            width=10
-        ).grid(row=0, column=1, pady=5)
+            width=12,
+            bg="#3c3c3c",
+            fg="#f0f0f0",
+            insertbackground="#ffffff",
+            relief="flat",
+        ).grid(row=2, column=1, padx=(12, 4), pady=4, sticky="w")
 
-        ttk.Entry(
+        tk.Entry(
             form,
             textvariable=self.height_var,
-            width=10
-        ).grid(row=1, column=1, pady=5)
+            width=12,
+            bg="#3c3c3c",
+            fg="#f0f0f0",
+            insertbackground="#ffffff",
+            relief="flat",
+        ).grid(row=3, column=1, padx=(12, 4), pady=4, sticky="w")
 
-        ttk.Label(form, text="px").grid(row=0, column=2)
-        ttk.Label(form, text="px").grid(row=1, column=2)
+        tk.Label(form, text="px", bg="#2b2b2b", fg="#888888").grid(row=2, column=2, sticky="w")
+        tk.Label(form, text="px", bg="#2b2b2b", fg="#888888").grid(row=3, column=2, sticky="w")
 
-    def _build_buttons(self, parent):
-        """Create dialog buttons."""
+        buttons = tk.Frame(outer, bg="#2b2b2b")
+        buttons.pack(fill="x", padx=20, pady=(8, 20))
 
-        buttons = ttk.Frame(parent)
-        buttons.pack(fill="x", pady=(20, 0))
-
-        ttk.Button(
+        tk.Button(
             buttons,
             text="Cancel",
-            command=self.destroy
-        ).pack(side="right", padx=5)
+            command=self.destroy,
+            bg="#404040",
+            fg="#f0f0f0",
+            activebackground="#505050",
+            relief="flat",
+            padx=16,
+            pady=6,
+        ).pack(side="right", padx=(8, 0))
 
-        ttk.Button(
+        tk.Button(
             buttons,
             text="Create",
-            command=self._confirm
+            command=self._confirm,
+            bg="#0e639c",
+            fg="#ffffff",
+            activebackground="#1177bb",
+            relief="flat",
+            padx=16,
+            pady=6,
         ).pack(side="right")
 
     def _confirm(self):
@@ -90,10 +135,11 @@ class NewProjectDialog(tk.Toplevel):
 
         width = self.width_var.get()
         height = self.height_var.get()
+        name = (self.name_var.get() or "").strip() or "Untitled"
 
         if width <= 0 or height <= 0:
             return
 
-        self.on_confirm(width, height)
+        self.on_confirm(width, height, name)
 
         self.destroy()
