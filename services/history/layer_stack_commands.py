@@ -1,4 +1,3 @@
-"""Undo/redo for adding or removing layers in the document list."""
 from core.image.layer import Layer
 from core.state.app_state import AppState
 from core.image.image_format import ImageFormat
@@ -9,13 +8,7 @@ from services.history.layer_clone import clone_layer
 class AddLayerCommand(DocumentCommand):
     """Undo removes the added layer at insert_index; redo reinserts a clone."""
 
-    def __init__(
-        self,
-        state: AppState,
-        document: ImageFormat,
-        insert_index: int,
-        added_layer_snapshot: Layer,
-    ):
+    def __init__(self, state: AppState, document: ImageFormat, insert_index: int, added_layer_snapshot: Layer):
         self._state = state
         self._document = document
         self._insert_index = insert_index
@@ -91,14 +84,8 @@ class ReplaceLayerOpacityCommand(DocumentCommand):
 class ReplaceLayerFilterStateCommand(DocumentCommand):
     """Undo/redo filter_id and filter_params on one layer."""
 
-    def __init__(
-        self,
-        layer: Layer,
-        filter_id_before: str,
-        filter_params_before: dict,
-        filter_id_after: str,
-        filter_params_after: dict,
-    ):
+    def __init__(self, layer: Layer, filter_id_before: str, filter_params_before: dict, filter_id_after: str, filter_params_after: dict):
+
         self._layer = layer
         self._id_before = filter_id_before
         self._params_before = dict(filter_params_before)
@@ -107,12 +94,18 @@ class ReplaceLayerFilterStateCommand(DocumentCommand):
 
     @property
     def description(self) -> str:
+        """Description of the filter_id."""
+
         return "Filter"
 
     def undo(self) -> None:
+        """Undo the filter_id."""
+
         self._layer.filter_id = self._id_before
         self._layer.filter_params = dict(self._params_before)
 
     def redo(self) -> None:
+        """Redo the filter_id."""
+
         self._layer.filter_id = self._id_after
         self._layer.filter_params = dict(self._params_after)

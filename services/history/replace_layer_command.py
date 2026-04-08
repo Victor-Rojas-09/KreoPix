@@ -1,12 +1,10 @@
-"""Undo/redo by swapping a layer's raster between two PIL snapshots."""
 from PIL import Image
-
 from core.image.layer import Layer
 from services.history.command_base import DocumentCommand
 
 
 class ReplaceLayerImageCommand(DocumentCommand):
-    """Restore layer.image (and original_image) to before/after snapshots."""
+    """Restore layer.image to before/after snapshots."""
 
     def __init__(
         self,
