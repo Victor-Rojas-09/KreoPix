@@ -1,5 +1,6 @@
 from core.image.image_format import ImageFormat
 from core.brush.presets import create_hard_brush
+from PIL import Image
 
 
 class AppState:
@@ -23,6 +24,7 @@ class AppState:
         self.current_brush = create_hard_brush((0, 0, 0, 255))
         self.current_color = (0, 0, 0, 255)
         self.recent_colors = []
+        self.selection_mask: Image.Image | None = None
 
     # ==========================================================
     # Document
@@ -39,6 +41,7 @@ class AppState:
         self.current_format = image_format
         self.selected_layer_index = 0
         self.current_project = image_format
+        self.selection_mask = None
         self.notify()
 
     def clear_format(self):
@@ -47,6 +50,7 @@ class AppState:
         self.current_format = None
         self.selected_layer_index = 0
         self.current_project = None
+        self.selection_mask = None
         self.notify()
 
     def has_format(self) -> bool:
@@ -171,6 +175,8 @@ class AppState:
         """Set the current brush."""
 
         self.current_brush = brush
+        if self.current_brush:
+            self.current_brush.brush_color = self.current_color
         self.notify()
 
     def update_brush_size(self, size: int):
@@ -261,3 +267,41 @@ class AppState:
 
         self.recent_colors.insert(0, color)
         self.recent_colors = self.recent_colors[:10]
+
+    # ==========================================================
+    # Selection
+    # ==========================================================
+    def clear_selection(self):
+        """Clear the active selection mask."""
+
+        self.selection_mask = None
+        self.notify()
+
+    def has_selection(self) -> bool:
+        """Return True when there is an active non-empty selection."""
+
+        if self.selection_mask is None:
+            return False
+        return self.selection_mask.getbbox() is not None
+
+    def get_selection_mask(self, size=None):
+        """Return the current selection mask, optionally resized to the given size."""
+
+        if self.selection_mask is None:
+            return None
+
+        if size is None or self.selection_mask.size == size:
+            return self.selection_mask
+
+        return self.selection_mask.resize(size, Image.NEAREST)
+
+    def set_selection_mask(self, mask: Image.Image | None):
+        """Set the current selection mask as a binary L image."""
+
+        if mask is None:
+            self.selection_mask = None
+            self.notify()
+            return
+
+        self.selection_mask = mask.convert("L")
+        self.notify()

@@ -1,11 +1,13 @@
 from tkinter import messagebox
 import os
+from PIL import Image
 
 from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
 from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
 from services.brushes.color_picker_service import ColorPickerService
 from services.brushes.fill_service import FillService
+from services.selection import SelectionService
 from services.history import (
     AddLayerCommand,
     CommandHistory,
@@ -41,6 +43,7 @@ class AppController:
         self.image_service = ImageService()
         self.color_picker_service = ColorPickerService()
         self.fill_service = FillService()
+        self.selection_service = SelectionService()
         self._history = CommandHistory(max_steps=50)
         self._bind_edit_shortcuts()
 
@@ -108,6 +111,14 @@ class AppController:
             return
         cmd = ReplaceLayerImageCommand(layer, image_before, image_after, description=description)
         self._history.push(cmd)
+
+    def _apply_selection_constraint(self, image_before, image_after):
+        """Apply selection mask so only selected pixels can be edited."""
+
+        selection_mask = self.state.get_selection_mask(image_before.size)
+        if selection_mask is None:
+            return image_after
+        return Image.composite(image_after, image_before, selection_mask)
 
     # ==========================================================
     # HOME
@@ -367,6 +378,8 @@ class AppController:
         brush.apply_stroke(layer.image, brush_points, getattr(brush, "brush_color", (0, 0, 0, 255)))
 
         image_after = layer.image.copy()
+        image_after = self._apply_selection_constraint(image_before, image_after)
+        layer.image = image_after.copy()
         stroke_label = "Eraser" if self.state.get_tool() == "eraser" else "Brush"
         self._push_layer_pixel_command(layer, image_before, image_after, stroke_label)
 
@@ -396,7 +409,8 @@ class AppController:
     def request_set_brush_by_preset(self, preset_factory, color=None):
         """Create a brush from a preset and assign it to the state."""
 
-        brush = preset_factory(color) if color else preset_factory()
+        brush_color = color if color is not None else self.state.get_color()
+        brush = preset_factory(brush_color) if preset_factory.__name__ != "create_eraser" else preset_factory()
         self.state.set_brush(brush)
 
     # ==========================================================
@@ -458,12 +472,14 @@ class AppController:
 
         layer = self.state.get_selected_layer()
         if not layer:
-            return
+            return None
 
         color = self.color_picker_service.pick_color(layer, x, y)
 
         if color:
             self.state.set_color(color)
+            return color
+        return None
 
     def handle_fill(self, x, y):
         """Apply flood fill on selected layer."""
@@ -483,7 +499,30 @@ class AppController:
         image_before = layer.image.copy()
         self.fill_service.fill(layer, x, y, color)
         image_after = layer.image.copy()
+        image_after = self._apply_selection_constraint(image_before, image_after)
+        layer.image = image_after.copy()
         self._push_layer_pixel_command(layer, image_before, image_after, "Fill")
 
         self.state.notify()
         self.refresh_canvas()
+
+    def handle_rect_selection(self, x0, y0, x1, y1):
+        """Create a rectangular selection mask in document space."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        mask = self.selection_service.create_rect_mask(layer.image.size, x0, y0, x1, y1)
+        self.state.set_selection_mask(mask)
+        self.refresh_canvas()
+
+    def handle_magic_wand(self, x, y, tolerance=40):
+        """Create a contiguous color-similarity selection from active layer."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        mask = self.selection_service.create_magic_wand_mask(layer.image, x, y, tolerance=tolerance)
+        if mask is not None:
+            self.state.set_selection_mask(mask)
+            self.refresh_canvas()

@@ -53,12 +53,18 @@ class EraserType(BaseBrushType):
 
 def create_airbrush(color):
     """Create a brush instance configured as an airbrush."""
-    return BrushFactory.create(AirbrushType())
+    brush = BrushFactory.create(AirbrushType())
+    if color is not None:
+        brush.brush_color = color
+    return brush
 
 
 def create_hard_brush(color):
     """Create a brush instance configured as a hard brush."""
-    return BrushFactory.create(HardBrushType())
+    brush = BrushFactory.create(HardBrushType())
+    if color is not None:
+        brush.brush_color = color
+    return brush
 
 
 def create_eraser():

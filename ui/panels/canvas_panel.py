@@ -20,6 +20,8 @@ class CanvasPanel(tk.Frame):
         self.current_image = None
         self.tk_image = None
         self._stroke_points = []
+        self._selection_start = None
+        self._selection_preview_id = None
 
         # Layout
         self.rowconfigure(0, weight=0)
@@ -114,15 +116,17 @@ class CanvasPanel(tk.Frame):
             self._stroke_points = [(x, y)]
 
         elif tool == "eyedropper":
-            color = self.controller.handle_eyedropper(x, y)
-            if color:
-                self.controller.state.set_color(color)
-                refresh = getattr(self.controller, "color_bar_refresh", None)
-                if callable(refresh):
-                    refresh()
+            self.controller.handle_eyedropper(x, y)
 
         elif tool == "paint_bucket":
             self.controller.handle_fill(x, y)
+
+        elif tool == "select":
+            self._selection_start = (x, y)
+            self._draw_selection_preview(x, y, x, y)
+
+        elif tool == "magic_wand":
+            self.controller.handle_magic_wand(x, y)
 
     def _on_mouse_move(self, event):
         """Handle mouse drag."""
@@ -133,6 +137,10 @@ class CanvasPanel(tk.Frame):
         tool = self.controller.state.current_tool
 
         if tool not in _STROKE_TOOLS:
+            if tool == "select" and self._selection_start:
+                x0, y0 = self._selection_start
+                x1, y1 = self.transform.canvas_to_image(event.x, event.y)
+                self._draw_selection_preview(x0, y0, x1, y1)
             return
 
         self._stroke_points.append(
@@ -148,6 +156,12 @@ class CanvasPanel(tk.Frame):
         tool = self.controller.state.current_tool
 
         if tool not in _STROKE_TOOLS:
+            if tool == "select" and self._selection_start:
+                x0, y0 = self._selection_start
+                x1, y1 = self.transform.canvas_to_image(event.x, event.y)
+                self.controller.handle_rect_selection(x0, y0, x1, y1)
+                self._selection_start = None
+                self._clear_selection_preview()
             return
 
         self._stroke_points.append(
@@ -211,3 +225,58 @@ class CanvasPanel(tk.Frame):
         self.tk_image = tk_image
         canvas_w, canvas_h, img_w, img_h = data
         self.transform.update(canvas_w, canvas_h, img_w, img_h)
+        self._draw_selection_overlay()
+
+    def _draw_selection_preview(self, x0, y0, x1, y1):
+        """Draw temporary rectangle while dragging selection."""
+
+        self._clear_selection_preview()
+        cx0, cy0 = self.transform.image_to_canvas(x0, y0)
+        cx1, cy1 = self.transform.image_to_canvas(x1, y1)
+        self._selection_preview_id = self.canvas.create_rectangle(
+            cx0,
+            cy0,
+            cx1,
+            cy1,
+            outline="#ffffff",
+            dash=(4, 3),
+            width=1
+        )
+
+    def _clear_selection_preview(self):
+        """Clear temporary rectangle selection preview."""
+
+        if self._selection_preview_id:
+            self.canvas.delete(self._selection_preview_id)
+            self._selection_preview_id = None
+
+    def _draw_selection_overlay(self):
+        """Draw persistent selection overlay from mask bounding box."""
+
+        if not self.controller:
+            return
+
+        document = self.controller.state.get_format()
+        if not document:
+            return
+
+        mask = self.controller.state.get_selection_mask(document.get_size())
+        if mask is None:
+            return
+
+        bbox = mask.getbbox()
+        if not bbox:
+            return
+
+        x0, y0, x1, y1 = bbox
+        cx0, cy0 = self.transform.image_to_canvas(x0, y0)
+        cx1, cy1 = self.transform.image_to_canvas(x1, y1)
+        self.canvas.create_rectangle(
+            cx0,
+            cy0,
+            cx1,
+            cy1,
+            outline="#00d4ff",
+            dash=(5, 3),
+            width=1
+        )

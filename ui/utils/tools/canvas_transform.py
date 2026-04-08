@@ -33,3 +33,10 @@ class CanvasTransform:
             max(0, min(self.img_w - 1, ix)),
             max(0, min(self.img_h - 1, iy))
         )
+
+    def image_to_canvas(self, ix, iy):
+        """Convert image coordinates into canvas coordinates."""
+
+        cx = int(ix * self.scale + self.offset_x)
+        cy = int(iy * self.scale + self.offset_y)
+        return cx, cy

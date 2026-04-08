@@ -7,10 +7,12 @@ class BrushEngine:
 
     def __init__(self):
         self.buffer = None
+        self._target_layer = None
 
     def begin_stroke(self, layer: Image.Image):
         """Start a new stroke by creating a transparent buffer matching the layer size."""
 
+        self._target_layer = layer
         self.buffer = Image.new("RGBA", layer.size, (0, 0, 0, 0))
 
     def end_stroke(self, layer: Image.Image):
@@ -18,7 +20,8 @@ class BrushEngine:
 
         if self.buffer:
             layer.alpha_composite(self.buffer)
-            self.buffer = None
+        self.buffer = None
+        self._target_layer = None
 
     def apply_stamp(self, mask, color, x, y, opacity):
         """Apply a brush stamp onto the buffer at the given position."""
@@ -44,13 +47,13 @@ class BrushEngine:
     def apply_eraser(self, mask, x, y, strength):
         """Reduce alpha under the mask (destination stays RGB; only A scales down)."""
 
-        if self.buffer is None:
+        if self._target_layer is None:
             return
 
         size = mask.size[0]
         half = size // 2
         bx0, by0 = int(x - half), int(y - half)
-        bw, bh = self.buffer.size
+        bw, bh = self._target_layer.size
 
         ix0 = max(0, bx0)
         iy0 = max(0, by0)
@@ -66,7 +69,8 @@ class BrushEngine:
 
         m = np.asarray(mask.crop((mx0, my0, mx1, my1)).convert("L"), dtype=np.float32) / 255.0
         f = np.clip(1.0 - m * float(strength), 0.0, 1.0)
-        buf = np.array(self.buffer)
+        buf = np.array(self._target_layer)
         sub = buf[iy0:iy1, ix0:ix1, :]
         sub[..., 3] = np.clip(sub[..., 3].astype(np.float32) * f, 0, 255).astype(np.uint8)
-        self.buffer = Image.fromarray(buf, "RGBA")
+        updated_layer = Image.fromarray(buf, "RGBA")
+        self._target_layer.paste(updated_layer)

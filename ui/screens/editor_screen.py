@@ -57,9 +57,6 @@ class EditorScreen(tk.Frame):
             sticky="ns"
         )
 
-        if self.controller:
-            self.controller.color_bar_refresh = self.right_sidebar.color_panel.color_tab._refresh_color_bar
-
     # ==================================================
     # APIs
     # ==================================================

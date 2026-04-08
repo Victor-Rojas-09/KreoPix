@@ -43,8 +43,8 @@ class ToolsPanel(tk.Frame):
         """Create tool buttons."""
 
         tools = [
-            ("Brush", lambda: self._select_tool("brush", create_hard_brush((0, 0, 0, 255)))),
-            ("Eraser", lambda: self._select_tool("eraser", create_eraser())),
+            ("Brush", lambda: self._select_tool("brush", create_hard_brush)),
+            ("Eraser", lambda: self._select_tool("eraser", create_eraser)),
             ("Select", lambda: self._select_tool("select")),
             ("Paint Bucket", lambda: self._select_tool("paint_bucket")),
             ("Eyedropper", lambda: self._select_tool("eyedropper")),
@@ -72,7 +72,7 @@ class ToolsPanel(tk.Frame):
 
             self.buttons[name] = btn
 
-    def _select_tool(self, tool_name, brush=None):
+    def _select_tool(self, tool_name, brush_factory=None):
         """Set active tool."""
 
         if not self.controller:
@@ -80,8 +80,11 @@ class ToolsPanel(tk.Frame):
 
         self.controller.request_set_tool(tool_name)
 
-        if brush:
-            self.controller.state.set_brush(brush)
+        if brush_factory:
+            self.controller.request_set_brush_by_preset(
+                brush_factory,
+                self.controller.state.get_color()
+            )
 
         self._highlight(tool_name)
 

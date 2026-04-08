@@ -58,8 +58,4 @@ class BrushPanel(tk.Frame):
     def _select_brush(self, factory):
         """Select a brush from the services."""
 
-        color = (0, 0, 0, 255)
-
-        brush = factory(color) if factory != create_eraser else factory()
-
-        self.controller.state.set_brush(brush)
+        self.controller.request_set_brush_by_preset(factory, self.controller.state.get_color())

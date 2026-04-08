@@ -10,6 +10,7 @@ class ColorTabFrame(tk.Frame):
         super().__init__(parent, bg="#444")
         self.controller = controller
         self._build()
+        self.controller.state.add_listener(self._on_state_change)
 
     # ==================================================
     # UI BUILD
@@ -177,6 +178,11 @@ class ColorTabFrame(tk.Frame):
 
         self.controller.state.set_color(color)
         self.controller.request_update_brush_color(color)
+
+    def _on_state_change(self, state):
+        """React to state changes by keeping recent color bar in sync."""
+
+        self._refresh_color_bar()
 
     def _rgba_to_hex(self, color):
         """Return hex color from rgba tuple."""
