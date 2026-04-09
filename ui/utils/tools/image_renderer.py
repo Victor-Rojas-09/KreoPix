@@ -2,18 +2,11 @@ from PIL import Image, ImageTk
 
 
 class ImageRenderer:
-    """
-    Responsible for rendering a PIL image into a Tkinter Canvas.
-
-    This includes:
-    - Scaling the image while maintaining aspect ratio
-    - Centering the image inside the canvas
-    - Converting PIL images into Tkinter-compatible PhotoImage instances
-    """
+    """Draw the full document image with viewport transform only."""
 
     @staticmethod
-    def render(canvas, pil_image):
-        """Render a PIL image into the given canvas."""
+    def render(canvas, pil_image, zoom: float, offset_x: float, offset_y: float):
+        """Render the full image scaled by zoom, placed at (offset_x, offset_y), anchor nw."""
 
         canvas.update_idletasks()
 
@@ -26,23 +19,21 @@ class ImageRenderer:
         if canvas_w < 1 or canvas_h < 1:
             return None, meta
 
-        scale = min(canvas_w / img_w, canvas_h / img_h)
+        if zoom <= 0:
+            zoom = 1e-6
 
-        new_w = int(img_w * scale)
-        new_h = int(img_h * scale)
+        disp_w = max(1, int(round(img_w * zoom)))
+        disp_h = max(1, int(round(img_h * zoom)))
 
-        if new_w < 1 or new_h < 1:
-            return None, meta
-
-        resized = pil_image.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        tk_image = ImageTk.PhotoImage(resized)
+        display_rgb = pil_image.convert("RGBA").resize((disp_w, disp_h), Image.Resampling.LANCZOS)
+        tk_image = ImageTk.PhotoImage(display_rgb)
 
         canvas.delete("all")
         canvas.create_image(
-            canvas_w // 2,
-            canvas_h // 2,
+            int(round(offset_x)),
+            int(round(offset_y)),
+            anchor="nw",
             image=tk_image,
-            anchor="center"
         )
 
         return tk_image, meta

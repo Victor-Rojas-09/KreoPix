@@ -17,9 +17,19 @@ class LayersPanel(tk.Frame):
         self._build_header()
         self._build_layers_area()
 
-        # Register listener to AppState
-        if self.controller and self.controller.state:
-            self.controller.state.add_listener(self.refresh_layers)
+        self._bound_state = None
+        if self.controller:
+            self.rebind_state_listener()
+
+    def rebind_state_listener(self):
+        """Attach to the active tab's AppState."""
+
+        if not self.controller:
+            return
+        if self._bound_state is not None:
+            self._bound_state.remove_listener(self.refresh_layers)
+        self._bound_state = self.controller.state
+        self._bound_state.add_listener(self.refresh_layers)
 
     def refresh_layers(self, state):
         """Efficient refresh of layer list."""
