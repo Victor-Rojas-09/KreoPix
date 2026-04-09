@@ -20,21 +20,26 @@ class MainLayout(tk.Frame):
         self.controller = controller
 
     def show(self, screen_name):
-        """Display selected screen."""
+        """Display selected screen. Keeps EditorScreen alive when already on editor."""
 
-        if self.current_screen:
-            self.current_screen.destroy()
+        if screen_name == "editor":
+            if isinstance(self.current_screen, EditorScreen):
+                return
+            if self.current_screen:
+                self.current_screen.destroy()
+            self.current_screen = EditorScreen(self, self.controller)
+            self.current_screen.pack(fill="both", expand=True)
+            return
 
         if screen_name == "home":
+            if self.current_screen:
+                self.current_screen.destroy()
             self.current_screen = HomeScreen(self, self.controller)
-
-        elif screen_name == "editor":
-            self.current_screen = EditorScreen(self, self.controller)
-
-        self.current_screen.pack(fill="both", expand=True)
+            self.current_screen.pack(fill="both", expand=True)
+            return
 
     def load_project_into_editor(self, project):
-        """Pass project to editor."""
+        """Legacy hook; projects load via tab sessions."""
 
         if isinstance(self.current_screen, EditorScreen):
-            self.current_screen.load_project(project)
+            self.current_screen.sync_from_controller()

@@ -24,7 +24,7 @@ class ToolsPanel(tk.Frame):
         """Load and resize icon."""
 
         img = Image.open(path)
-        img = img.resize((42, 42), Image.LANCZOS)
+        img = img.resize((48, 48), Image.LANCZOS)
         return ImageTk.PhotoImage(img)
 
     def _load_icons(self):
@@ -37,6 +37,7 @@ class ToolsPanel(tk.Frame):
             "Paint Bucket": self._load_icon("assets/icons/paint_bucket.png"),
             "Eyedropper": self._load_icon("assets/icons/eyedropper.png"),
             "Magic Wand": self._load_icon("assets/icons/magic_wand.png"),
+            "Zoom": self._load_icon("assets/icons/zoom.png"),
         }
 
     def _build(self):
@@ -49,6 +50,7 @@ class ToolsPanel(tk.Frame):
             ("Paint Bucket", lambda: self._select_tool("paint_bucket")),
             ("Eyedropper", lambda: self._select_tool("eyedropper")),
             ("Magic Wand", lambda: self._select_tool("magic_wand")),
+            ("Zoom", lambda: self._select_tool("zoom_area")),
         ]
 
         for name, command in tools:
@@ -98,6 +100,7 @@ class ToolsPanel(tk.Frame):
             "paint_bucket": "Paint Bucket",
             "eyedropper": "Eyedropper",
             "magic_wand": "Magic Wand",
+            "zoom_area": "Zoom",
         }
 
         selected = mapping.get(tool_name)

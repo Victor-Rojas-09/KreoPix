@@ -1,6 +1,5 @@
 import tkinter as tk
 
-from core.state.app_state import AppState
 from core.files.recent_manager import RecentManager
 from services.files.file_service import FileService
 from controllers.app_controller import AppController
@@ -29,8 +28,6 @@ class AppRoot:
         # Window Icon
         self.root.iconbitmap("assets/app/LOGO.ico")
 
-        # Core Layer
-        self.state = AppState()
         self.recent_manager = RecentManager()
 
         # Services Layer
@@ -43,7 +40,6 @@ class AppRoot:
         self.controller = AppController(
             root=self.root,
             layout=self.layout,
-            state=self.state,
             file_service=self.file_service,
             recent_manager=self.recent_manager
         )
