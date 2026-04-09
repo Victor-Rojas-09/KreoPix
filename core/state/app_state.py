@@ -66,6 +66,14 @@ class AppState:
 
         self._listeners.append(callback)
 
+    def remove_listener(self, callback):
+        """Unregister a state change listener."""
+
+        try:
+            self._listeners.remove(callback)
+        except ValueError:
+            pass
+
     def notify(self):
         """Notify all listeners."""
 

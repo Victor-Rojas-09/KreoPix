@@ -1,6 +1,23 @@
 import numpy as np
 
 
+def compute_region_zoom_factor(canvas_w, canvas_h, img_w, img_h, x0, y0, x1, y1) -> float:
+    """
+    Return a zoom_factor multiplier so the selected image rectangle fits the canvas,
+    relative to the default fit-to-window scale (viewport-only navigation).
+    """
+
+    rw = max(1, abs(x1 - x0))
+    rh = max(1, abs(y1 - y0))
+    if img_w < 1 or img_h < 1 or canvas_w < 1 or canvas_h < 1:
+        return 1.0
+    fit_scale = min(canvas_w / img_w, canvas_h / img_h)
+    desired_scale = min(canvas_w / rw, canvas_h / rh)
+    if fit_scale <= 0:
+        return 1.0
+    return max(0.05, desired_scale / fit_scale)
+
+
 class ImageReduction:
     """
     Reduce the image resolution

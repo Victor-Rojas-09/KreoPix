@@ -2,6 +2,8 @@ from tkinter import messagebox
 import os
 from PIL import Image
 
+from core.state.app_state import AppState
+from controllers.app_editor import EditorSession
 from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
 from ui.utils.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
@@ -15,6 +17,7 @@ from services.history import (
     ReplaceLayerFilterStateCommand,
     ReplaceLayerImageCommand,
     ReplaceLayerOpacityCommand,
+    ReplaceSelectionMaskCommand,
 )
 from core.brush.brush_core import BrushPoint
 
@@ -34,18 +37,78 @@ class AppController:
     # CLASS CONSTRUCTOR
     # ==========================================================
 
-    def __init__(self, root, layout, state, file_service, recent_manager):
+    def __init__(self, root, layout, file_service, recent_manager):
         self.root = root
         self.layout = layout
-        self.state = state
         self.file_service = file_service
         self.recent_manager = recent_manager
         self.image_service = ImageService()
         self.color_picker_service = ColorPickerService()
         self.fill_service = FillService()
         self.selection_service = SelectionService()
-        self._history = CommandHistory(max_steps=50)
+        self._empty_state = AppState()
+        self._sessions: list[EditorSession] = []
+        self._active_index = 0
         self._bind_edit_shortcuts()
+        self._bind_tool_shortcuts()
+
+    # ==========================================================
+    # Active session / state (backward-compatible API)
+    # ==========================================================
+
+    @property
+    def state(self) -> AppState:
+        """Active tab state, or an empty state when no editor tab exists."""
+
+        if not self._sessions:
+            return self._empty_state
+        return self._sessions[self._active_index].state
+
+    def _get_history(self) -> CommandHistory:
+        return self._sessions[self._active_index].history
+
+    def _active_session(self) -> EditorSession | None:
+        if not self._sessions:
+            return None
+        return self._sessions[self._active_index]
+
+    def get_sessions(self) -> list[EditorSession]:
+        """Return all editor sessions (tabs)."""
+
+        return list(self._sessions)
+
+    def get_active_session_index(self) -> int:
+        return self._active_index
+
+    def activate_session(self, index: int):
+        """Switch active tab and sync viewport."""
+
+        if index < 0 or index >= len(self._sessions):
+            return
+        self._active_index = index
+        self._rebind_editor_listeners()
+        self.state.notify()
+        self.refresh_layers()
+        self.refresh_canvas()
+        self._sync_tools_highlight()
+        self._notify_editor_tabs()
+
+    def _sync_tools_highlight(self):
+        """Keep tools panel button highlight in sync after tab switch."""
+
+        if not self._is_editor_screen():
+            return
+        screen = self.layout.current_screen
+        if hasattr(screen, "tools_panel") and hasattr(screen.tools_panel, "_highlight"):
+            tool = self.state.get_tool()
+            if tool:
+                screen.tools_panel._highlight(tool)
+
+    def _notify_editor_tabs(self):
+        if self._is_editor_screen():
+            screen = self.layout.current_screen
+            if hasattr(screen, "refresh_tabs"):
+                screen.refresh_tabs()
 
     # ==========================================================
     # UNDO / REDO
@@ -54,20 +117,25 @@ class AppController:
     def _clear_history(self):
         """Reset undo/redo when the document is replaced or closed."""
 
-        self._history.clear()
+        if self._sessions:
+            self._get_history().clear()
 
     def can_undo(self) -> bool:
-        return self._history.can_undo()
+        if not self._sessions:
+            return False
+        return self._get_history().can_undo()
 
     def can_redo(self) -> bool:
-        return self._history.can_redo()
+        if not self._sessions:
+            return False
+        return self._get_history().can_redo()
 
     def request_undo(self):
         """Undo the last document change."""
 
         if not self.state.has_format():
             return
-        if self._history.undo():
+        if self._get_history().undo():
             self.state.notify()
             self.refresh_layers()
             self.refresh_canvas()
@@ -77,7 +145,7 @@ class AppController:
 
         if not self.state.has_format():
             return
-        if self._history.redo():
+        if self._get_history().redo():
             self.state.notify()
             self.refresh_layers()
             self.refresh_canvas()
@@ -104,13 +172,51 @@ class AppController:
             self.request_redo()
             return "break"
 
+    def _bind_tool_shortcuts(self):
+        """Letter shortcuts for tools (editor only)."""
+
+        bindings = (
+            ("<b>", "brush"),
+            ("<B>", "brush"),
+            ("<e>", "eraser"),
+            ("<E>", "eraser"),
+            ("<i>", "eyedropper"),
+            ("<I>", "eyedropper"),
+            ("<s>", "select"),
+            ("<S>", "select"),
+            ("<f>", "paint_bucket"),
+            ("<F>", "paint_bucket"),
+            ("<w>", "magic_wand"),
+            ("<W>", "magic_wand"),
+            ("<z>", "zoom_area"),
+            ("<Z>", "zoom_area"),
+        )
+        for seq, tool in bindings:
+            self.root.bind_all(seq, self._make_tool_shortcut_handler(tool))
+
+    def _make_tool_shortcut_handler(self, tool_name: str):
+        def handler(event=None):
+            if not self._is_editor_screen() or not self.state.has_format():
+                return
+            self.request_set_tool(tool_name)
+            from core.brush.presets import create_hard_brush, create_eraser
+
+            if tool_name == "brush":
+                self.request_set_brush_by_preset(create_hard_brush, self.state.get_color())
+            elif tool_name == "eraser":
+                self.request_set_brush_by_preset(create_eraser)
+            self._sync_tools_highlight()
+            return "break"
+
+        return handler
+
     def _push_layer_pixel_command(self, layer, image_before, image_after, description: str):
         """Record brush/fill/eraser if pixels actually changed."""
 
         if image_before.tobytes() == image_after.tobytes():
             return
         cmd = ReplaceLayerImageCommand(layer, image_before, image_after, description=description)
-        self._history.push(cmd)
+        self._get_history().push(cmd)
 
     def _apply_selection_constraint(self, image_before, image_after):
         """Apply selection mask so only selected pixels can be edited."""
@@ -154,22 +260,24 @@ class AppController:
         if not document:
             return
 
-        self._clear_history()
-        self.state.set_format(document)
+        title = os.path.basename(path) if path else "Untitled"
+        self._add_session(document, title, path)
         if path:
             self.recent_manager.add_recent(path)
 
-        self._go_to_editor(document)
+        self._go_to_editor()
 
     def request_open_recent(self, path):
         """Open a project from recent list."""
 
         try:
             document = self.file_service.open_from_path(path)
-            self._clear_history()
-            self.state.set_format(document)
+            if not document:
+                return
+            title = os.path.basename(path)
+            self._add_session(document, title, path)
             self.recent_manager.add_recent(path)
-            self._go_to_editor(document)
+            self._go_to_editor()
 
         except FileNotFoundError:
             messagebox.showerror("Error", f"File not found:\n{path}")
@@ -201,15 +309,29 @@ class AppController:
     def request_back_home(self):
         """Return to home screen."""
 
-        self._clear_history()
-        self.state.clear_format()
+        self._sessions.clear()
+        self._empty_state.clear_format()
         self.load_home()
 
     # ==========================================================
     # INTERNAL LOGIC
     # ==========================================================
 
-    def _create_project(self, width, height):
+    def _add_session(self, document, display_title: str, source_path: str | None):
+        """Append a new tab with a fresh AppState and history."""
+
+        st = AppState()
+        st.set_format(document)
+        st.set_selected_layer(len(document.get_layers()) - 1)
+        sess = EditorSession(
+            state=st,
+            display_title=display_title,
+            source_path=source_path,
+        )
+        self._sessions.append(sess)
+        self._active_index = len(self._sessions) - 1
+
+    def _create_project(self, width, height, project_name: str = "Untitled"):
         """
         Create a new blank document and open editor.
         Always includes a background layer and an initial editable layer.
@@ -220,21 +342,61 @@ class AppController:
         # Add initial editable transparent layer
         document.add_layer(name="Layer 1")
 
-        self._clear_history()
-        self.state.set_format(document)
-        self.state.set_selected_layer(len(document.get_layers()) - 1)
+        title = (project_name or "").strip() or "Untitled"
+        self._add_session(document, title, None)
+        self._go_to_editor()
 
-        self._go_to_editor(document)
+    def request_close_tab(self, index: int):
+        """Close a tab by index; closing the last tab prompts app exit."""
 
-    def _go_to_editor(self, document):
-        """Navigate to editor and load project."""
-
-        self.layout.show("editor")
-        self.layout.load_project_into_editor(document)
-
-        # Initial refresh
+        if index < 0 or index >= len(self._sessions):
+            return
+        if len(self._sessions) == 1:
+            ConfirmExitDialog(self.root, self.root.destroy)
+            return
+        prev_active = self._active_index
+        self._sessions.pop(index)
+        if prev_active == index:
+            self._active_index = min(index, len(self._sessions) - 1)
+        elif prev_active > index:
+            self._active_index -= 1
+        self._rebind_editor_listeners()
+        self.state.notify()
         self.refresh_layers()
         self.refresh_canvas()
+        self._sync_tools_highlight()
+        self._notify_editor_tabs()
+
+    def _sync_viewport_from_session(self):
+        """Apply stored zoom/pan to canvas panel."""
+
+        sess = self._active_session()
+        if not sess or not self._is_editor_screen():
+            return
+        screen = self.layout.current_screen
+        if hasattr(screen, "canvas_panel") and hasattr(screen.canvas_panel, "set_viewport_from_session"):
+            screen.canvas_panel.set_viewport_from_session(sess)
+
+    def _rebind_editor_listeners(self):
+        """Rebind UI listeners when active tab changes."""
+
+        if not self._is_editor_screen():
+            return
+        screen = self.layout.current_screen
+        if hasattr(screen, "rebind_state_listeners"):
+            screen.rebind_state_listeners()
+        self._sync_viewport_from_session()
+
+    def _go_to_editor(self):
+        """Navigate to editor and refresh UI."""
+
+        self.layout.show("editor")
+        self.layout.load_project_into_editor(None)
+        self._rebind_editor_listeners()
+        self.refresh_layers()
+        self.refresh_canvas()
+        self._sync_tools_highlight()
+        self._notify_editor_tabs()
 
     # ==========================================================
     # UI REFRESH
@@ -302,7 +464,7 @@ class AppController:
         self.state.set_selected_layer(insert_at)
 
         added = document.layers[insert_at]
-        self._history.push(
+        self._get_history().push(
             AddLayerCommand(self.state, document, insert_at, added)
         )
 
@@ -327,7 +489,7 @@ class AppController:
         self.state.update_layer_opacity(layer, opacity)
         after = layer.opacity
         if before != after:
-            self._history.push(
+            self._get_history().push(
                 ReplaceLayerOpacityCommand(layer, before, after)
             )
 
@@ -345,7 +507,7 @@ class AppController:
         removed_snapshot = layers[idx]
         cmd = RemoveLayerCommand(self.state, idx, removed_snapshot)
         self.state.remove_selected_layer()
-        self._history.push(cmd)
+        self._get_history().push(cmd)
 
         self.refresh_layers()
         self.refresh_canvas()
@@ -430,7 +592,7 @@ class AppController:
         after_id = layer.filter_id
         after_params = dict(layer.filter_params or {})
         if before_id != after_id or before_params != after_params:
-            self._history.push(
+            self._get_history().push(
                 ReplaceLayerFilterStateCommand(
                     layer, before_id, before_params, after_id, after_params
                 )
@@ -455,7 +617,7 @@ class AppController:
         after_id = layer.filter_id
         after_params = dict(layer.filter_params or {})
         if before_id != after_id or before_params != after_params:
-            self._history.push(
+            self._get_history().push(
                 ReplaceLayerFilterStateCommand(
                     layer, before_id, before_params, after_id, after_params
                 )
@@ -506,23 +668,86 @@ class AppController:
         self.state.notify()
         self.refresh_canvas()
 
+    def _push_selection_mask_command(self, mask_before, mask_after, label: str = "Selection"):
+        if mask_before is None and mask_after is None:
+            return
+
+        if (
+                mask_before is not None
+                and mask_after is not None
+                and mask_before.size == mask_after.size
+                and mask_before.tobytes() == mask_after.tobytes()
+        ):
+            return
+
+        cmd = ReplaceSelectionMaskCommand(self.state, mask_before, mask_after, label)
+        self._get_history().push(cmd)
+
     def handle_rect_selection(self, x0, y0, x1, y1):
-        """Create a rectangular selection mask in document space."""
+        """Rectangle selection (geometry-based)."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        mask = self.selection_service.create_rect_mask(layer.image.size, x0, y0, x1, y1)
-        self.state.set_selection_mask(mask)
-        self.refresh_canvas()
+
+        mask_new = self.selection_service.create_rect_mask(
+            layer.image.size, x0, y0, x1, y1
+        )
+
+        self._apply_selection_with_toggle(mask_new)
 
     def handle_magic_wand(self, x, y, tolerance=40):
-        """Create a contiguous color-similarity selection from active layer."""
+        """Magic wand selection (color-based)."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        mask = self.selection_service.create_magic_wand_mask(layer.image, x, y, tolerance=tolerance)
-        if mask is not None:
-            self.state.set_selection_mask(mask)
-            self.refresh_canvas()
+
+        mask_new = self.selection_service.create_magic_wand_mask(
+            layer.image, x, y, tolerance=tolerance
+        )
+
+        self._apply_selection_with_toggle(mask_new)
+
+    def _apply_selection_with_toggle(self, mask_new):
+        """Apply selection with toggle + undo/redo."""
+
+        if mask_new is None or mask_new.getbbox() is None:
+            return
+
+        mask_old = self.state.selection_mask
+
+        same_mask = (
+                mask_old is not None and
+                mask_old.size == mask_new.size and
+                mask_old.tobytes() == mask_new.tobytes()
+        )
+
+        if same_mask:
+            # Toggle OFF
+            self._push_selection_mask_command(mask_old, None, "Clear selection")
+            self.state.set_selection_mask(None)
+        else:
+            # Nueva selección
+            self._push_selection_mask_command(mask_old, mask_new, "Selection")
+            self.state.set_selection_mask(mask_new)
+
+        self.refresh_canvas()
+
+    def handle_zoom_to_rect(self, x0, y0, x1, y1):
+        """Viewport zoom to fit the given image rectangle (non-destructive)."""
+
+        if not self._is_editor_screen():
+            return
+        screen = self.layout.current_screen
+        if hasattr(screen, "canvas_panel") and hasattr(screen.canvas_panel, "zoom_to_image_rect"):
+            screen.canvas_panel.zoom_to_image_rect(x0, y0, x1, y1)
+
+    def update_active_session_viewport(self, zoom_factor: float, offset_x: float, offset_y: float):
+        """Persist viewport (zoom multiplier + screen offsets of image origin) on the active tab."""
+
+        sess = self._active_session()
+        if sess:
+            sess.zoom_factor = zoom_factor
+            sess.offset_x = offset_x
+            sess.offset_y = offset_y

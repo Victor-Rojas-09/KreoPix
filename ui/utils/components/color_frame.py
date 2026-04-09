@@ -9,8 +9,17 @@ class ColorTabFrame(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#444")
         self.controller = controller
+        self._bound_state = None
         self._build()
-        self.controller.state.add_listener(self._on_state_change)
+        self.rebind_state_listener()
+
+    def rebind_state_listener(self):
+        """Attach to the active tab's AppState."""
+
+        if self._bound_state is not None:
+            self._bound_state.remove_listener(self._on_state_change)
+        self._bound_state = self.controller.state
+        self._bound_state.add_listener(self._on_state_change)
 
     # ==================================================
     # UI BUILD
