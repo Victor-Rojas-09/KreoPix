@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser
 from ui.utils.tools.custom_slider import DarkRangeSlider
+from ui.utils.tools.icon_button import IconButton
 
 
 class ColorTabFrame(tk.Frame):
@@ -10,6 +11,14 @@ class ColorTabFrame(tk.Frame):
         super().__init__(parent, bg="#444")
         self.controller = controller
         self._bound_state = None
+
+        # Configuración de iconos (editable fácilmente)
+        self.icons = {
+            "reset": "assets/icons/reset.png",
+            "settings": "assets/icons/settings.png",
+            "picker": "assets/icons/piker.png"
+        }
+
         self._build()
         self.rebind_state_listener()
 
@@ -18,6 +27,7 @@ class ColorTabFrame(tk.Frame):
 
         if self._bound_state is not None:
             self._bound_state.remove_listener(self._on_state_change)
+
         self._bound_state = self.controller.state
         self._bound_state.add_listener(self._on_state_change)
 
@@ -34,18 +44,56 @@ class ColorTabFrame(tk.Frame):
         self._add_slider("Green", self._on_green_change)
         self._add_slider("Blue", self._on_blue_change)
 
-        # Advanced button
+        # =========================
+        # BUTTON ROW
+        # =========================
+        button_row = tk.Frame(self, bg="#444")
+        button_row.pack(fill="x", padx=10, pady=5)
+
+        inner = tk.Frame(button_row, bg="#444")
+        inner.pack(anchor="center")
+
+        IconButton(
+            inner,
+            image_path=self.icons["reset"],
+            size=(18, 18),
+            command=self._reset_changes
+        ).pack(side="left", padx=5)
+
         tk.Button(
-            self,
-            text="Advanced...",
+            inner,
+            text="Apply",
+            bg="#777",
+            fg="white",
+            padx=5,
+            pady=2,
+            command=self._apply_changes
+        ).pack(side="left", padx=6)
+
+        IconButton(
+            inner,
+            image_path=self.icons["settings"],
+            size=(18, 18),
             command=self._open_advanced_dialog
-        ).pack(pady=5)
+        ).pack(side="left", padx=5)
 
-        # Color bar
-        self.color_bar = tk.Frame(self, bg="#333")
-        self.color_bar.pack(fill="x", padx=10, pady=8)
+        # =========================
+        # COLOR ROW
+        # =========================
+        color_row = tk.Frame(self, bg="#333")
+        color_row.pack(fill="x", padx=10, pady=8)
 
-        # Initialize with default colors if state has none
+        IconButton(
+            color_row,
+            image_path=self.icons["picker"],
+            size=(20, 20),
+            command=self._open_color_picker
+        ).pack(side="left", padx=(0, 5))
+
+        self.color_bar = tk.Frame(color_row, bg="#333")
+        self.color_bar.pack(side="left", fill="x")
+
+        # Initialize default colors
         if not self.controller.state.get_recent_colors():
             default_colors = ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF"]
 
@@ -54,13 +102,6 @@ class ColorTabFrame(tk.Frame):
                 self.controller.state.set_color((r, g, b, 255))
 
         self._refresh_color_bar()
-
-        # Color picker button
-        tk.Button(
-            self,
-            text="Pick Color",
-            command=self._open_color_picker
-        ).pack(pady=5)
 
     def _add_slider(self, label, command):
         """Create a centered slider row with aligned label."""
@@ -91,6 +132,22 @@ class ColorTabFrame(tk.Frame):
         slider.pack(side="left")
 
     # ==================================================
+    # ACTIONS
+    # ==================================================
+
+    def _apply_changes(self):
+        """Apply the changes."""
+
+        print("Apply changes")
+        # self.controller.apply_filters()
+
+    def _reset_changes(self):
+        """Reset the changes."""
+
+        print("Reset changes")
+        # reset sliders / estado
+
+    # ==================================================
     # SCALING FUNCTIONS
     # ==================================================
 
@@ -103,8 +160,8 @@ class ColorTabFrame(tk.Frame):
         """Scale the color with a given gamma."""
 
         v = value / 100
-        return int((abs(v) ** gamma) * 255) if v >= 0 else int(-(abs(v) ** gamma) * 255)
 
+        return int((abs(v) ** gamma) * 255) if v >= 0 else int(-(abs(v) ** gamma) * 255)
 
     def _on_brightness_change(self, value):
         """Change the brightness of the color."""
@@ -113,9 +170,7 @@ class ColorTabFrame(tk.Frame):
             return
 
         self.controller.request_set_filter("brightness")
-
         scaled_value = self._scale_gamma(value, gamma=3.0)
-
         self.controller.request_update_filter_param("value", scaled_value)
 
     def _on_red_change(self, value):
@@ -145,6 +200,9 @@ class ColorTabFrame(tk.Frame):
         self.controller.request_set_filter("blue_adjust")
         self.controller.request_update_filter_param("value", self._scale_linear(value))
 
+    # ==================================================
+    # COLOR HANDLING
+    # ==================================================
 
     def _open_color_picker(self):
         """Open system color picker and apply selected color."""
@@ -205,9 +263,7 @@ class ColorTabFrame(tk.Frame):
 
         hex_color = hex_color.lstrip("#")
 
-        r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-        return r, g, b
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
     def _open_advanced_dialog(self):
         print("Advanced dialog placeholder")

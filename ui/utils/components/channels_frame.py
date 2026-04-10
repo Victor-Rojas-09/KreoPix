@@ -54,8 +54,14 @@ class ChannelsTabFrame(tk.Frame):
                 self.channels_frame,
                 text=channel,
                 variable=var,
-                bg="#444",
+                bg="#666",
                 fg="white",
+                activebackground="#666",
+                selectcolor="#666",
+                highlightthickness=0,
+                bd=0,
+                width=2,
+                anchor="w",
                 command=lambda ch=channel: self._on_channel_toggle(ch)
             )
             button.pack(anchor="w", padx=10)
