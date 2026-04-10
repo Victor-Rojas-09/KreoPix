@@ -26,7 +26,7 @@ class SelectionService:
 
         return Image.fromarray(mask_array, "L")
 
-    def create_magic_wand_mask(self, image: Image.Image, x: int, y: int, tolerance: int = 40) -> Image.Image | None:
+    def create_magic_wand_mask(self, image: Image.Image, x, y, tolerance = 40) -> Image.Image | None:
         """Create a contiguous color-similarity mask from a seed pixel."""
 
         rgba = np.array(image.convert("RGBA"), dtype=np.int16)

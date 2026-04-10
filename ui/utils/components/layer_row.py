@@ -7,7 +7,7 @@ class LayerRow(tk.Frame):
     """
 
     def __init__(self, parent, layer, index, controller):
-        super().__init__(parent, bg="#666", height=26)
+        super().__init__(parent, bg="#666", height=30)
 
         self.controller = controller
         self.layer = layer

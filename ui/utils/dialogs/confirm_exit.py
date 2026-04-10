@@ -19,7 +19,7 @@ class ConfirmExitDialog(tk.Toplevel):
         except tk.TclError:
             pass
 
-        WindowPositioner.center_to_parent(self, parent, 320, 160)
+        WindowPositioner.center_to_parent(self, parent, 320, 140)
 
         self.transient(parent)
         self.grab_set()
@@ -37,10 +37,21 @@ class ConfirmExitDialog(tk.Toplevel):
             font=("Segoe UI", 10),
             anchor="center",
             justify="center",
-        ).pack(pady=(0, 16), fill="x")
+        ).pack(pady=(0, 16))
 
         btn_row = tk.Frame(outer, bg="#2b2b2b")
-        btn_row.pack(fill="x")
+        btn_row.pack(anchor="center")
+
+        tk.Button(
+            btn_row,
+            text=" Exit ",
+            command=self._confirm,
+            bg="#606060",
+            fg="#ffffff",
+            relief="flat",
+            padx=14,
+            pady=6,
+        ).pack(side="left", padx=5)
 
         tk.Button(
             btn_row,
@@ -51,18 +62,7 @@ class ConfirmExitDialog(tk.Toplevel):
             relief="flat",
             padx=14,
             pady=6,
-        ).pack(side="right", padx=(8, 0))
-
-        tk.Button(
-            btn_row,
-            text="Exit",
-            command=self._confirm,
-            bg="#606060",
-            fg="#ffffff",
-            relief="flat",
-            padx=14,
-            pady=6,
-        ).pack(side="right")
+        ).pack(side="left", padx=5)
 
     def _confirm(self):
         """Confirm exit of the window to destroy."""

@@ -6,7 +6,7 @@ class ColorPanel(tk.Frame):
     """Panel for color selection and image adjustments."""
 
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="#2b2b2b")  # fondo general más neutro
+        super().__init__(parent, bg="#2b2b2b")
         self.controller = controller
         self._build()
 
