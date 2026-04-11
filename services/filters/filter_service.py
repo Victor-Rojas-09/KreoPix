@@ -8,7 +8,8 @@ from core.library.color.channels import (
     BlueChannel,
     CyanChannel,
     MagentaChannel,
-    YellowChannel
+    YellowChannel,
+    ColorInverter
 )
 
 from core.library.color.grayscale import (
@@ -35,6 +36,11 @@ FILTER_REGISTRY = {
     "normal": {
         "name": "Normal",
         "class": None,
+        "params": {}
+    },
+    "invert": {
+        "name": "Invert Color",
+        "class": ColorInverter,
         "params": {}
     },
     "red_channel": {

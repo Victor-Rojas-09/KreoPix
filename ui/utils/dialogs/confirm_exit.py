@@ -27,10 +27,13 @@ class ConfirmExitDialog(tk.Toplevel):
         self.configure(bg="#2b2b2b")
 
         outer = tk.Frame(self, bg="#2b2b2b")
-        outer.pack(fill="both", expand=True, padx=10, pady=10)
+        outer.pack(expand=True, fill="both")
+
+        content = tk.Frame(outer, bg="#2b2b2b", padx=10, pady=10)
+        content.pack(expand=True)
 
         tk.Label(
-            outer,
+            content,
             text="Are you sure you want to exit?",
             bg="#2b2b2b",
             fg="#f0f0f0",
@@ -39,8 +42,8 @@ class ConfirmExitDialog(tk.Toplevel):
             justify="center",
         ).pack(pady=(0, 16))
 
-        btn_row = tk.Frame(outer, bg="#2b2b2b")
-        btn_row.pack(anchor="center")
+        btn_row = tk.Frame(content, bg="#2b2b2b")
+        btn_row.pack()
 
         tk.Button(
             btn_row,

@@ -9,7 +9,7 @@ class IconButton(tk.Label):
         parent,
         image_path,
         size=(20, 20),
-        bg="#545454",
+        bg="#444",
         hover_bg="#666",
         active_bg="#777",
         command=None

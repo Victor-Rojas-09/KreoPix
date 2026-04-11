@@ -83,7 +83,8 @@ class LayersPanel(tk.Frame):
             "normal",
             "grayscale_average",
             "grayscale_luminosity",
-            "grayscale_midgray"
+            "grayscale_midgray",
+            "invert"
         ]
 
         for filter_id in filters_to_show:

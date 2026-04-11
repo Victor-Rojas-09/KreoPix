@@ -12,7 +12,7 @@ class ColorTabFrame(tk.Frame):
         self.controller = controller
         self._bound_state = None
 
-        # Configuración de iconos (editable fácilmente)
+        # Icons paths
         self.icons = {
             "reset": "assets/icons/reset.png",
             "settings": "assets/icons/settings.png",
@@ -50,7 +50,10 @@ class ColorTabFrame(tk.Frame):
         button_row = tk.Frame(self, bg="#444")
         button_row.pack(fill="x", padx=10, pady=5)
 
-        inner = tk.Frame(button_row, bg="#444")
+        center_frame = tk.Frame(button_row, bg="#444")
+        center_frame.pack(side="left", expand=True)
+
+        inner = tk.Frame(center_frame, bg="#444")
         inner.pack(anchor="center")
 
         IconButton(
@@ -71,7 +74,7 @@ class ColorTabFrame(tk.Frame):
         ).pack(side="left", padx=6)
 
         IconButton(
-            inner,
+            button_row,
             image_path=self.icons["settings"],
             size=(18, 18),
             command=self._open_advanced_dialog

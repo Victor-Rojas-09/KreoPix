@@ -34,6 +34,16 @@ class ChannelsTabFrame(tk.Frame):
 
         self._build_channel_checkboxes("RGB")
 
+        tk.Button(
+            self,
+            text="Histogram",
+            bg="#777",
+            fg="white",
+            padx=5,
+            pady=2,
+            command=self._open_histogram
+        ).pack(anchor="center", padx=6)
+
     def _build_channel_checkboxes(self, mode):
         """Build checkboxes for channels depending on mode."""
 
@@ -119,3 +129,6 @@ class ChannelsTabFrame(tk.Frame):
             return mapping_rgb.get(channel)
         else:
             return mapping_cmy.get(channel)
+
+    def _open_histogram(self):
+        print("Image Histogram")
