@@ -10,6 +10,11 @@ from services.images.image_service import ImageService
 from services.brushes.color_picker_service import ColorPickerService
 from services.brushes.fill_service import FillService
 from services.selection import SelectionService
+from services.color import (
+    HistogramCurveService,
+    ColorAdjustmentService,
+    ThresholdStackService,
+)
 from services.history import (
     AddLayerCommand,
     CommandHistory,
@@ -46,6 +51,9 @@ class AppController:
         self.color_picker_service = ColorPickerService()
         self.fill_service = FillService()
         self.selection_service = SelectionService()
+        self.histogram_curve_service = HistogramCurveService()
+        self.color_adjustment_service = ColorAdjustmentService()
+        self.threshold_stack_service = ThresholdStackService()
         self._empty_state = AppState()
         self._sessions: list[EditorSession] = []
         self._active_index = 0
@@ -623,6 +631,154 @@ class AppController:
                 )
             )
 
+        self.refresh_canvas()
+
+    # ==========================================================
+    # HISTOGRAM & CURVES
+    # ==========================================================
+
+    def get_histogram_for_image(self, image: Image.Image):
+        """Return histogram data dict for a PIL image (R, G, B, luma, max_count)."""
+
+        return self.histogram_curve_service.get_histogram(image)
+
+    def open_histogram_curves_dialog(self, parent):
+        """Open histogram and curves editor for the selected layer."""
+
+        if not self.state.get_selected_layer():
+            return
+        from ui.utils.dialogs.histogram_curves import HistogramCurvesDialog
+
+        HistogramCurvesDialog(parent, self)
+
+    def request_histogram_curve_preview(self, snapshot: Image.Image, points: list):
+        """Apply curve to snapshot and show on layer (no undo)."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        out = self.histogram_curve_service.apply_curve(snapshot, points)
+        layer.image = out
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_histogram_curve_commit(self, snapshot: Image.Image, final_image: Image.Image):
+        """Record curves edit in history."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        self._push_layer_pixel_command(layer, snapshot, final_image, "Curves")
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_histogram_curve_cancel(self, snapshot: Image.Image):
+        """Restore layer image from dialog open snapshot."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        layer.image = snapshot.copy()
+        self.state.notify()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # COLOR ADJUSTMENTS (CUMULATIVE)
+    # ==========================================================
+
+    def request_preview_color_adjustments(
+        self,
+        brightness_slider: float,
+        red_slider: float,
+        green_slider: float,
+        blue_slider: float,
+    ):
+        """Preview brightness + RGB offsets from original_image (no undo)."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        base = layer.original_image.copy()
+        out = self.color_adjustment_service.apply_color_adjustments(
+            base, brightness_slider, red_slider, green_slider, blue_slider
+        )
+        layer.image = out
+        layer.filter_id = "normal"
+        layer.filter_params = {}
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_apply_color_adjustments(self):
+        """Commit color adjustment preview to layer history."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        before = layer.original_image.copy()
+        after = layer.image.copy()
+        self._push_layer_pixel_command(layer, before, after, "Color adjust")
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_reset_color_adjustments(self):
+        """Restore layer pixels from original_image and clear destructive filter state."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        layer.image = layer.original_image.copy()
+        layer.filter_id = "normal"
+        layer.filter_params = {}
+        self.state.notify()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # THRESHOLD STACK DIALOG
+    # ==========================================================
+
+    def open_threshold_settings_dialog(self, parent):
+        """Open multi-threshold filter dialog."""
+
+        if not self.state.get_selected_layer():
+            return
+        from ui.utils.dialogs.threshold_settings import ThresholdSettingsDialog
+
+        ThresholdSettingsDialog(parent, self)
+
+    def request_threshold_stack_preview(
+        self,
+        snapshot: Image.Image,
+        active_ids: list[str],
+        params_by_id: dict[str, dict],
+    ):
+        """Apply ordered threshold filters to snapshot (no undo)."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        out = self.threshold_stack_service.apply_stack(snapshot, active_ids, params_by_id)
+        layer.image = out
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_threshold_stack_commit(self, snapshot: Image.Image, final_image: Image.Image):
+        """Record threshold stack in history."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        self._push_layer_pixel_command(layer, snapshot, final_image, "Threshold stack")
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_threshold_stack_cancel(self, snapshot: Image.Image):
+        """Restore layer from dialog open snapshot."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+        layer.image = snapshot.copy()
+        self.state.notify()
         self.refresh_canvas()
 
     # ==========================================================
