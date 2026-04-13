@@ -42,7 +42,11 @@ class ColorPanel(tk.Frame):
 
         # Create tab frames
         self.color_tab = ColorTabFrame(self.tab_container, self.controller)
-        self.channels_tab = ChannelsTabFrame(self.tab_container, self.controller)
+        self.channels_tab = ChannelsTabFrame(
+            self.tab_container,
+            self.controller,
+            on_mode_changed=lambda _m: self.color_tab.reset_cumulative_adjustments(),
+        )
 
         # Show default tab
         self._show_tab("color")

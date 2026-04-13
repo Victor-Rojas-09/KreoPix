@@ -25,6 +25,16 @@ class AppState:
         self.current_color = (0, 0, 0, 255)
         self.recent_colors = []
         self.selection_mask: Image.Image | None = None
+        # Threshold filters (UI-driven selection)
+        self._active_threshold_filters = [
+            "brightness",
+            "red_adjust",
+            "green_adjust",
+            "blue_adjust"
+        ]
+
+        # Parámetros actuales de sliders (opcional pero útil)
+        self._threshold_params: dict[str, dict] = {}
 
     # ==========================================================
     # Document
@@ -313,3 +323,52 @@ class AppState:
 
         self.selection_mask = mask.convert("L")
         self.notify()
+
+    # ==========================================================
+    # Threshold Filters
+    # ==========================================================
+
+    def set_active_threshold_filters(self, filters: list[str]):
+        """Set active threshold filters selected from dialog."""
+
+        self._active_threshold_filters = filters
+
+        # Inicializar parámetros si no existen
+        for fid in filters:
+            if fid not in self._threshold_params:
+                self._threshold_params[fid] = {"value": 127}
+
+        # limpiar los que ya no están activos
+        for fid in list(self._threshold_params.keys()):
+            if fid not in filters:
+                del self._threshold_params[fid]
+
+        self.notify()
+
+    def get_active_threshold_filters(self) -> list[str]:
+        """Return currently active threshold filters."""
+
+        return self._active_threshold_filters
+
+    def set_threshold_param(self, filter_id: str, param: str, value: int):
+        """Update a parameter for a threshold filter."""
+
+        if filter_id not in self._threshold_params:
+            self._threshold_params[filter_id] = {}
+
+        self._threshold_params[filter_id][param] = value
+        self.notify()
+
+    def get_threshold_params(self) -> dict[str, dict]:
+        """Return all threshold parameters."""
+
+        return self._threshold_params
+
+    def reset_threshold_params(self):
+        """Reset all threshold params to default values."""
+
+        for fid in self._threshold_params:
+            self._threshold_params[fid] = {"value": 127}
+
+        self.notify()
+

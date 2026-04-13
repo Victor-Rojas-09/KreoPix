@@ -25,6 +25,14 @@ from core.library.color.adjustments import (
     BlueAdjust
 )
 
+from core.library.segmentation.threshold_filters_rgb import (
+    GlobalBinarizeRgb,
+    AdaptiveGaussianRgb,
+    AdaptiveMeanRgb,
+    CannyEdgeRgb,
+    OtsuBinarizeRgb,
+)
+
 
 """
 The FILTER_REGISTRY is a centralized dictionary that defines all 
@@ -118,7 +126,46 @@ FILTER_REGISTRY = {
         "params": {
             "value": {"min": -255, "max": 255, "default": 0}
         }
-    }
+    },
+
+    "global_binarize": {
+        "name": "Global Binarize",
+        "class": GlobalBinarizeRgb,
+        "params": {
+            "threshold": {"min": 0, "max": 255, "default": 127}
+        }
+    },
+    "adaptive_gaussian": {
+        "name": "Adaptive Gaussian",
+        "class": AdaptiveGaussianRgb,
+        "params": {
+            "block_size": {"min": 3, "max": 99, "default": 11},
+            "C": {"min": -50, "max": 50, "default": 2}
+        }
+    },
+    "adaptive_mean": {
+        "name": "Adaptive Mean",
+        "class": AdaptiveMeanRgb,
+        "params": {
+            "block_size": {"min": 3, "max": 99, "default": 11},
+            "C": {"min": -50, "max": 50, "default": 2}
+        }
+    },
+    "canny_edge": {
+        "name": "Canny Edge",
+        "class": CannyEdgeRgb,
+        "params": {
+            "threshold1": {"min": 0, "max": 255, "default": 80},
+            "threshold2": {"min": 0, "max": 255, "default": 160}
+        }
+    },
+    "otsu_binarize": {
+        "name": "Otsu Binarize",
+        "class": OtsuBinarizeRgb,
+        "params": {
+            "dummy": {"min": 0, "max": 0, "default": 0}
+        }
+    },
 }
 
 
