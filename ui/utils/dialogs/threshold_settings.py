@@ -1,6 +1,6 @@
 import tkinter as tk
 from services.filters.filter_service import FILTER_REGISTRY
-from services.color.threshold_stack_service import ThresholdStackService
+from services.color.threshold_stack import ThresholdStackService
 from ui.utils.tools.window_positioner import WindowPositioner
 
 
