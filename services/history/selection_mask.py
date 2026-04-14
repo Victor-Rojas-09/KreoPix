@@ -14,10 +14,16 @@ class ReplaceSelectionMaskCommand(DocumentCommand):
 
     @property
     def description(self) -> str:
+        """Return description of the mask."""
+
         return self._label
 
     def undo(self) -> None:
+        """Undo the mask."""
+
         self._state.set_selection_mask(self._before)
 
     def redo(self) -> None:
+        """Redo the mask."""
+
         self._state.set_selection_mask(self._after)

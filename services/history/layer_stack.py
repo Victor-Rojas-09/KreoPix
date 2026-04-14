@@ -16,16 +16,26 @@ class AddLayerCommand(DocumentCommand):
 
     @property
     def description(self) -> str:
+        """Description of the added layer."""
+
         return "Add layer"
 
     def undo(self) -> None:
+        """Undo removes the added layer at insert_index; redo reinserts a clone."""
+
+        # Also updates selection to a valid previous layer index.
         if self._insert_index < len(self._document.layers):
             self._document.layers.pop(self._insert_index)
+
         self._state.selected_layer_index = max(0, self._insert_index - 1)
 
     def redo(self) -> None:
+        """Redo removes the added layer at insert_index; redo reinserts a clone."""
+
+        # Index is clamped to avoid out-of-bounds insertion.
         layer = clone_layer(self._snapshot)
         idx = min(self._insert_index, len(self._document.layers))
+
         self._document.layers.insert(idx, layer)
         self._state.selected_layer_index = self._insert_index
 
@@ -40,22 +50,36 @@ class RemoveLayerCommand(DocumentCommand):
 
     @property
     def description(self) -> str:
+        """Description of the removed layer."""
+
         return "Remove layer"
 
     def undo(self) -> None:
+        """Undo removes the removed layer."""
+
+        # Uses clamping to ensure insertion index is valid.
         doc = self._state.current_format
+
         if not doc:
             return
+
         idx = min(self._index, len(doc.layers))
         doc.layers.insert(idx, clone_layer(self._snapshot))
+
         self._state.selected_layer_index = self._index
 
     def redo(self) -> None:
+        """Redo removes the removed layer."""
+
+        # Ensures selection remains valid after deletion.
         doc = self._state.current_format
+
         if not doc or self._index >= len(doc.layers):
             return
+
         doc.layers.pop(self._index)
         layers = doc.layers
+
         if layers:
             self._state.selected_layer_index = max(0, min(self._index, len(layers) - 1))
         else:
@@ -72,12 +96,18 @@ class ReplaceLayerOpacityCommand(DocumentCommand):
 
     @property
     def description(self) -> str:
+        """Description of layer opacity."""
+
         return "Layer opacity"
 
     def undo(self) -> None:
+        """Undo layer opacity percentage."""
+
         self._layer.opacity = self._opacity_before
 
     def redo(self) -> None:
+        """Redo layer opacity percentage."""
+
         self._layer.opacity = self._opacity_after
 
 

@@ -1,12 +1,11 @@
 import tkinter as tk
 from ui.utils.tools.custom_slider import BlueSlider
 from ui.utils.components.layer_row import LayerRow
-
 from services.filters.filter_service import FILTER_REGISTRY
 
 
 class LayersPanel(tk.Frame):
-    """Layers management panel."""
+    """Layers management panel class."""
 
     def __init__(self, parent, controller=None):
         super().__init__(parent, bg="#555")
@@ -26,8 +25,10 @@ class LayersPanel(tk.Frame):
 
         if not self.controller:
             return
+
         if self._bound_state is not None:
             self._bound_state.remove_listener(self.refresh_layers)
+
         self._bound_state = self.controller.state
         self._bound_state.add_listener(self.refresh_layers)
 
@@ -64,7 +65,6 @@ class LayersPanel(tk.Frame):
         header.columnconfigure(1, weight=1)
 
         # FILTER SELECTOR
-
         self.mode_var = tk.StringVar(value="Normal")
 
         self.mode_button = tk.Menubutton(
@@ -197,13 +197,17 @@ class LayersPanel(tk.Frame):
 
         # Fill in missing rows
         for _ in range(current, target):
+
             row = LayerRow(self.layers_container, layers[0], 0, self.controller)
             row.pack(fill="x", padx=5, pady=2)
+
             self.layer_rows.append(row)
 
         # Remove extra rows
         for _ in range(target, current):
+
             row = self.layer_rows.pop()
+
             row.destroy()
 
         # Update content

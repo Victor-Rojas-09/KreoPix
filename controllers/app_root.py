@@ -23,7 +23,7 @@ class AppRoot:
         self.root = tk.Tk()
         self.root.title("KreoPix")
         self.root.geometry("1000x700")
-        self.root.minsize(800, 600)
+        self.root.minsize(800, 740)
 
         # Window Icon
         self.root.iconbitmap("assets/app/LOGO.ico")
