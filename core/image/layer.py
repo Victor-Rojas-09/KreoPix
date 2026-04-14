@@ -8,6 +8,7 @@ class Layer:
         if image is None:
             image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
 
+        image = image.convert("RGBA")
         self.original_image = image.copy()
         self.image = image.copy()
         self.name = name
@@ -21,11 +22,16 @@ class Layer:
 
         img = image if image else self.image
 
-        if img is None or self.opacity == 100:
+        if img is None:
+            return None
+
+        img = img.convert("RGBA")
+
+        if self.opacity == 100:
             return img.copy()
 
-        result = img.copy().convert("RGBA")
-        r, g, b, a = result.split()
+        r, g, b, a = img.split()
         factor = self.opacity / 100.0
         a = a.point(lambda p: int(p * factor))
+
         return Image.merge("RGBA", (r, g, b, a))

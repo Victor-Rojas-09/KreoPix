@@ -1,5 +1,4 @@
 from PIL import Image
-
 from services.filters.filter_service import FilterService
 
 
@@ -28,9 +27,13 @@ class ThresholdStackService:
             return None
 
         result = image.convert("RGBA")
+
         for fid in self.ORDERED_FILTER_IDS:
+
             if fid not in active_ids:
                 continue
             params = params_by_id.get(fid, {})
+
             result = self._filter_service.apply(result, fid, params)
+
         return result

@@ -1,20 +1,12 @@
 import tkinter as tk
 from tkinter import colorchooser
-
 from ui.utils.tools.custom_slider import DarkRangeSlider
 from ui.utils.tools.icon_button import IconButton
 from services.filters.filter_service import FILTER_REGISTRY
 
 
 class ColorTabFrame(tk.Frame):
-    """
-    Color and threshold filter control panel.
-
-    Responsibilities:
-    - Render sliders dynamically
-    - Handle preview
-    - Apply/reset filters
-    """
+    """Color and threshold filter control panel."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#444")
@@ -34,14 +26,12 @@ class ColorTabFrame(tk.Frame):
         self._build()
         self.rebind_state_listener()
 
-        # FIRST RENDER
+        # Initial render based on current state
         self._on_state_change(self.controller.state)
 
-    # ==================================================
-    # STATE
-    # ==================================================
-
     def rebind_state_listener(self):
+        """Rebind state listener and avoid duplicate subscriptions."""
+
         if self._bound_state is not None:
             self._bound_state.remove_listener(self._on_state_change)
 
@@ -49,16 +39,18 @@ class ColorTabFrame(tk.Frame):
         self._bound_state.add_listener(self._on_state_change)
 
     # ==================================================
-    # UI
+    # UI BUILDING
     # ==================================================
 
     def _build(self):
+        """Create main UI layout (buttons, sliders, and color bar)."""
+
         self._sliders_container = tk.Frame(self, bg="#444")
         self._sliders_container.pack(fill="x", pady=5)
 
-        # =========================
-        # BUTTON ROW
-        # =========================
+        # ===============================================
+        # Button row
+        # ===============================================
         button_row = tk.Frame(self, bg="#444")
         button_row.pack(fill="x", padx=10, pady=5)
 
@@ -92,7 +84,9 @@ class ColorTabFrame(tk.Frame):
             command=self._open_advanced_dialog
         ).pack(side="left", padx=5)
 
-        # Color bar
+        # ===============================================
+        # Color bar section
+        # ===============================================
         color_row = tk.Frame(self, bg="#333")
         color_row.pack(fill="x", padx=10, pady=8)
 
@@ -106,7 +100,7 @@ class ColorTabFrame(tk.Frame):
         self.color_bar = tk.Frame(color_row, bg="#333")
         self.color_bar.pack(side="left", fill="x")
 
-        # RESTORE DEFAULT COLORS
+        # Initialize default colors if none exist
         if not self.controller.state.get_recent_colors():
             default_colors = ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF"]
             for c in default_colors:
@@ -120,6 +114,8 @@ class ColorTabFrame(tk.Frame):
     # ==================================================
 
     def _rebuild_sliders(self, filters):
+        """Recreate slider UI based on active filters."""
+
         for widget in self._sliders_container.winfo_children():
             widget.destroy()
 
@@ -129,12 +125,16 @@ class ColorTabFrame(tk.Frame):
             self._create_filter_sliders(fid)
 
     def _create_filter_sliders(self, fid):
+        """Create sliders for a specific filter definition."""
+
         meta = FILTER_REGISTRY.get(fid, {})
         name = meta.get("name", fid)
         params = meta.get("params", {})
 
+        # Create UI for each parameter
         for pname, rules in params.items():
 
+            # Special case: non-interactive filter
             if pname == "dummy":
                 frame = tk.Frame(self._sliders_container, bg="#444")
                 frame.pack(fill="x", padx=10, pady=4)
@@ -149,6 +149,7 @@ class ColorTabFrame(tk.Frame):
 
             tk.Label(frame, text=label, bg="#444", fg="white", width=18, anchor="w").pack(side="left")
 
+            # Slider controlling filter parameter
             slider = DarkRangeSlider(
                 frame,
                 min_value=rules["min"],
@@ -159,7 +160,6 @@ class ColorTabFrame(tk.Frame):
             )
 
             slider.pack(side="left")
-
             slider.set_value(rules["default"], trigger=False)
 
             self._adjustment_sliders[(fid, pname)] = slider
@@ -169,6 +169,8 @@ class ColorTabFrame(tk.Frame):
     # ==================================================
 
     def _on_slider_change(self, fid, param, value):
+        """Handle slider updates and trigger live preview."""
+
         if not self._snapshot:
             layer = self.controller.state.get_selected_layer()
             if layer:
@@ -178,6 +180,8 @@ class ColorTabFrame(tk.Frame):
         self._preview()
 
     def _preview(self):
+        """Send current filter stack for live preview rendering."""
+
         params = self.controller.state.get_threshold_params()
         filters = self.controller.state.get_active_threshold_filters()
 
@@ -188,6 +192,8 @@ class ColorTabFrame(tk.Frame):
         )
 
     def _apply_changes(self):
+        """Commit current filter changes to the image."""
+
         layer = self.controller.state.get_selected_layer()
 
         if layer and self._snapshot:
@@ -199,12 +205,16 @@ class ColorTabFrame(tk.Frame):
         self._reset_all()
 
     def _reset_changes(self):
+        """Cancel current edits and restore previous state."""
+
         if self._snapshot:
             self.controller.request_threshold_stack_cancel(self._snapshot)
 
         self._reset_all()
 
     def _reset_all(self):
+        """Reset internal state and UI sliders to defaults."""
+
         self._snapshot = None
         self.controller.state.reset_threshold_params()
 
@@ -217,6 +227,8 @@ class ColorTabFrame(tk.Frame):
     # ==================================================
 
     def _on_state_change(self, state):
+        """React to external state updates (filters/colors)."""
+
         filters = state.get_active_threshold_filters()
 
         if filters != self._current_filters:
@@ -226,10 +238,12 @@ class ColorTabFrame(tk.Frame):
         self._refresh_color_bar()
 
     # ==================================================
-    # COLOR
+    # COLOR HANDLING
     # ==================================================
 
     def _open_color_picker(self):
+        """Open system color picker and update brush color."""
+
         result = colorchooser.askcolor()
         if result and result[0]:
             r, g, b = map(int, result[0])
@@ -240,6 +254,8 @@ class ColorTabFrame(tk.Frame):
             self._refresh_color_bar()
 
     def _refresh_color_bar(self):
+        """Rebuild recent color palette UI."""
+
         for widget in self.color_bar.winfo_children():
             widget.destroy()
 
@@ -256,10 +272,15 @@ class ColorTabFrame(tk.Frame):
             ).pack(side="left", padx=2)
 
     def _select_color(self, color):
+        """Select a color from the palette."""
+
         self.controller.state.set_color(color)
         self.controller.request_update_brush_color(color)
 
     def _open_advanced_dialog(self):
+        """Open advanced threshold settings dialog."""
+
+
         top = self.winfo_toplevel()
         self.controller.open_threshold_settings_dialog(top)
 
@@ -268,5 +289,7 @@ class ColorTabFrame(tk.Frame):
     # ==================================================
 
     def _hex_to_rgb(self, hex_color):
+        """Convert hex color string to RGB tuple."""
+
         hex_color = hex_color.lstrip("#")
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
