@@ -33,7 +33,7 @@ class AppState:
             "blue_adjust"
         ]
 
-        # Parámetros actuales de sliders (opcional pero útil)
+        # Slider params
         self._threshold_params: dict[str, dict] = {}
 
     # ==========================================================
@@ -333,13 +333,15 @@ class AppState:
 
         self._active_threshold_filters = filters
 
-        # Inicializar parámetros si no existen
+        # Initialize parameters if they do not exist
         for fid in filters:
+
             if fid not in self._threshold_params:
                 self._threshold_params[fid] = {"value": 127}
 
-        # limpiar los que ya no están activos
+        # Clean no active filters
         for fid in list(self._threshold_params.keys()):
+
             if fid not in filters:
                 del self._threshold_params[fid]
 

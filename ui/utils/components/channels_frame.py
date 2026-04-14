@@ -3,9 +3,10 @@ import tkinter as tk
 class ChannelsTabFrame(tk.Frame):
     """Frame for channel selection (RGB/CMYK)."""
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, on_mode_changed=None):
         super().__init__(parent, bg="#444")
         self.controller = controller
+        self._on_mode_changed = on_mode_changed
         self.channels = {}
         self.mode_var = tk.StringVar(value="RGB")
         self._build()
@@ -86,6 +87,9 @@ class ChannelsTabFrame(tk.Frame):
         # Reset filter when mode changes
         self.controller.request_set_filter("normal")
 
+        if self._on_mode_changed:
+            self._on_mode_changed(mode)
+
 
     def _on_channel_toggle(self, selected_channel):
         """Enforce single selection behavior."""
@@ -131,4 +135,7 @@ class ChannelsTabFrame(tk.Frame):
             return mapping_cmy.get(channel)
 
     def _open_histogram(self):
-        print("Image Histogram")
+        """Open histogram and curves dialog."""
+
+        top = self.winfo_toplevel()
+        self.controller.open_histogram_curves_dialog(top)

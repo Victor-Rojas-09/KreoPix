@@ -1,42 +1,62 @@
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 class Histogram:
-    """"
-    This Class is for make a histogram of the canal image
-    """
-    def applyRed(self, img: np.ndarray) -> None:
+    """RGB and Luma histogram generator."""
 
-        if img.max() <= 1.0:
-            img = (img * 255).astype(np.uint8)
+    def _normalize(self, img: np.ndarray) -> np.ndarray:
+        """Convert image to uint8 RGB."""
 
-        channel = img[:, :, 0]
+        if img.ndim == 2:
+            img = np.stack([img, img, img], axis=2)
 
-        plt.figure(figsize=(12,6))
-        plt.hist(channel.ravel(), bins=256, color='red')
-        plt.title('Red Channel Histogram')
-        plt.show()
+        if img.dtype != np.uint8:
+            if float(img.max()) <= 1.0:
+                img = (np.clip(img, 0, 1) * 255).astype(np.uint8)
+            else:
+                img = np.clip(img, 0, 255).astype(np.uint8)
 
-    def applyGreen(self, img: np.ndarray) -> None:
+        return img[:, :, :3]
 
-        if img.max() <= 1.0:
-            img = (img * 255).astype(np.uint8)
+    def _hist(self, channel: np.ndarray) -> np.ndarray:
+        """Compute 256-bin histogram for a single channel."""
 
-        channel = img[:, :, 1]
+        return np.histogram(channel.ravel(), bins=256, range=(0, 256))[0]
 
-        plt.figure(figsize=(12,6))
-        plt.hist(channel.ravel(), bins=256, color='green')
-        plt.title('Green Channel Histogram')
-        plt.show()
+    # ==========================================================
+    # HISTOGRAMS OF CHANNELS
+    # ==========================================================
 
-    def applyBlue(self, img: np.ndarray) -> None:
+    def apply_red(self, img: np.ndarray) -> np.ndarray:
+        """Compute histogram for red channel."""
 
-        if img.max() <= 1.0:
-            img = (img * 255).astype(np.uint8)
+        img = self._normalize(img)
 
-        channel = img[:, :, 2]
+        return self._hist(img[:, :, 0])
 
-        plt.figure(figsize=(12,6))
-        plt.hist(channel.ravel(), bins=256, color='blue')
-        plt.title('Blue Channel Histogram')
-        plt.show()
+    def apply_green(self, img: np.ndarray) -> np.ndarray:
+        """Compute histogram for green channel."""
+
+        img = self._normalize(img)
+
+        return self._hist(img[:, :, 1])
+
+    def apply_blue(self, img: np.ndarray) -> np.ndarray:
+        """Compute histogram for blue channel."""
+
+        img = self._normalize(img)
+
+        return self._hist(img[:, :, 2])
+
+    def apply_luma(self, img: np.ndarray) -> np.ndarray:
+        """Compute luminance histogram."""
+
+        img = self._normalize(img)
+
+        luma = (
+            0.299 * img[:, :, 0].astype(np.float64)
+            + 0.587 * img[:, :, 1].astype(np.float64)
+            + 0.114 * img[:, :, 2].astype(np.float64)
+        )
+
+        return self._hist(luma)

@@ -624,7 +624,9 @@ class AppController:
 
         after_id = layer.filter_id
         after_params = dict(layer.filter_params or {})
-        if before_id != after_id or before_params != after_params:
+
+        if (before_id != after_id) or (before_params != after_params):
+
             self._get_history().push(
                 ReplaceLayerFilterStateCommand(
                     layer, before_id, before_params, after_id, after_params
@@ -647,18 +649,22 @@ class AppController:
 
         if not self.state.get_selected_layer():
             return
+
         from ui.utils.dialogs.histogram_curves import HistogramCurvesDialog
 
         HistogramCurvesDialog(parent, self)
 
     def request_histogram_curve_preview(self, snapshot: Image.Image, points: list):
-        """Apply curve to snapshot and show on layer (no undo)."""
-
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        out = self.histogram_curve_service.apply_curve(snapshot, points)
-        layer.image = out
+
+        base = snapshot.convert("RGBA")
+
+        out = self.histogram_curve_service.apply_curve(base, points)
+
+        layer.image = out.convert("RGBA")
+
         self.state.notify()
         self.refresh_canvas()
 
@@ -683,52 +689,177 @@ class AppController:
         self.refresh_canvas()
 
     # ==========================================================
-    # COLOR ADJUSTMENTS (CUMULATIVE)
+    # COLOR ADJUSTMENTS
     # ==========================================================
 
-    def request_preview_color_adjustments(
-        self,
-        brightness_slider: float,
-        red_slider: float,
-        green_slider: float,
-        blue_slider: float,
-    ):
-        """Preview brightness + RGB offsets from original_image (no undo)."""
+    def request_preview_color_adjustments(self,snapshot,brightness_slider: float,red_slider: float,green_slider: float,blue_slider: float):
+        """Restore layer image from dialog open snapshot."""
 
         layer = self.state.get_selected_layer()
+
         if not layer:
             return
-        base = layer.original_image.copy()
+
+
+        base = snapshot.convert("RGBA")
+
         out = self.color_adjustment_service.apply_color_adjustments(
-            base, brightness_slider, red_slider, green_slider, blue_slider
+            base,
+            brightness_slider,
+            red_slider,
+            green_slider,
+            blue_slider
         )
-        layer.image = out
-        layer.filter_id = "normal"
-        layer.filter_params = {}
+
+        layer.image = out.convert("RGBA")
         self.state.notify()
         self.refresh_canvas()
 
     def request_apply_color_adjustments(self):
-        """Commit color adjustment preview to layer history."""
+        """Restore layer image from dialog open snapshot."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        before = layer.original_image.copy()
-        after = layer.image.copy()
+
+        before = layer.original_image.copy().convert("RGBA")
+        after = layer.image.copy().convert("RGBA")
+
         self._push_layer_pixel_command(layer, before, after, "Color adjust")
+
+        # Save the changes
+        layer.original_image = after.copy()
+
+        print(layer.image.mode)
+        print(layer.image.getpixel((0, 0)))
         self.state.notify()
         self.refresh_canvas()
 
     def request_reset_color_adjustments(self):
-        """Restore layer pixels from original_image and clear destructive filter state."""
+        """Restore layer image from dialog open snapshot."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        layer.image = layer.original_image.copy()
+
+        layer.image = layer.original_image.copy().convert("RGBA")
         layer.filter_id = "normal"
         layer.filter_params = {}
+
+        self.state.notify()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # HISTOGRAM & CURVES
+    # ==========================================================
+
+    def get_histogram_for_image(self, image: Image.Image):
+        """Return histogram data for a PIL image."""
+
+        return self.histogram_curve_service.get_histogram(image)
+
+    def open_histogram_curves_dialog(self, parent):
+        """Open histogram & curves editor for the currently selected layer."""
+
+        if not self.state.get_selected_layer():
+            return
+
+        from ui.utils.dialogs.histogram_curves import HistogramCurvesDialog
+        HistogramCurvesDialog(parent, self)
+
+    def request_histogram_curve_preview(self, snapshot: Image.Image, points: list):
+        """Apply curve transformation for live preview."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        base = snapshot.convert("RGBA")
+        out = self.histogram_curve_service.apply_curve(base, points)
+
+        layer.image = out.convert("RGBA")
+
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_histogram_curve_commit(self, snapshot: Image.Image, final_image: Image.Image):
+        """Commit histogram curve changes to history system."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        self._push_layer_pixel_command(layer, snapshot, final_image, "Curves")
+
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_histogram_curve_cancel(self, snapshot: Image.Image):
+        """Revert image back to the original snapshot taken when dialog opened."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        layer.image = snapshot.copy()
+        self.state.notify()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # COLOR ADJUSTMENTS
+    # ==========================================================
+
+    def request_preview_color_adjustments(self, snapshot,brightness_slider: float, red_slider: float, green_slider: float, blue_slider: float):
+        """Apply real-time color adjustment preview."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        base = snapshot.convert("RGBA")
+
+        out = self.color_adjustment_service.apply_color_adjustments(
+            base,
+            brightness_slider,
+            red_slider,
+            green_slider,
+            blue_slider
+        )
+
+        layer.image = out.convert("RGBA")
+
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_apply_color_adjustments(self):
+        """Commit color adjustment changes permanently."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        before = layer.original_image.copy().convert("RGBA")
+        after = layer.image.copy().convert("RGBA")
+
+        self._push_layer_pixel_command(layer, before, after, "Color adjust")
+
+        # Persist changes as new baseline
+        layer.original_image = after.copy()
+
+        self.state.notify()
+        self.refresh_canvas()
+
+    def request_reset_color_adjustments(self):
+        """Reset all color adjustments back to original image state."""
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        layer.image = layer.original_image.copy().convert("RGBA")
+        layer.filter_id = "normal"
+        layer.filter_params = {}
+
         self.state.notify()
         self.refresh_canvas()
 
@@ -737,58 +868,78 @@ class AppController:
     # ==========================================================
 
     def open_threshold_settings_dialog(self, parent):
-        """Open multi-threshold filter dialog."""
+        """Open threshold stack configuration dialog."""
 
         if not self.state.get_selected_layer():
             return
-        from ui.utils.dialogs.threshold_settings import ThresholdSettingsDialog
 
+        from ui.utils.dialogs.threshold_settings import ThresholdSettingsDialog
         ThresholdSettingsDialog(parent, self)
 
     def request_threshold_stack_preview(
-        self,
-        snapshot: Image.Image,
-        active_ids: list[str],
-        params_by_id: dict[str, dict],
+            self,
+            snapshot: Image.Image,
+            active_ids: list[str],
+            params_by_id: dict[str, dict],
     ):
-        """Apply ordered threshold filters to snapshot (no undo)."""
+        """Apply threshold filter stack for live preview."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        out = self.threshold_stack_service.apply_stack(snapshot, active_ids, params_by_id)
-        layer.image = out
+
+        base = snapshot.convert("RGBA")
+
+        out = self.threshold_stack_service.apply_stack(
+            base,
+            active_ids,
+            params_by_id
+        )
+
+        layer.image = out.convert("RGBA")
+
         self.state.notify()
         self.refresh_canvas()
 
     def request_threshold_stack_commit(self, snapshot: Image.Image, final_image: Image.Image):
-        """Record threshold stack in history."""
+        """Commit threshold stack changes to history system."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        self._push_layer_pixel_command(layer, snapshot, final_image, "Threshold stack")
+
+        before = snapshot.copy().convert("RGBA")
+        after = final_image.copy().convert("RGBA")
+
+        self._push_layer_pixel_command(layer, before, after, "Threshold stack")
+
+        # Persist new baseline image
+        layer.original_image = after.copy()
+
         self.state.notify()
         self.refresh_canvas()
 
     def request_threshold_stack_cancel(self, snapshot: Image.Image):
-        """Restore layer from dialog open snapshot."""
+        """Cancel threshold editing and restore snapshot state."""
 
         layer = self.state.get_selected_layer()
         if not layer:
             return
-        layer.image = snapshot.copy()
+
+        layer.image = snapshot.copy().convert("RGBA")
+
         self.state.notify()
         self.refresh_canvas()
 
     # ==========================================================
-    # Tools
+    # TOOLS
     # ==========================================================
 
     def handle_eyedropper(self, x, y):
-        """Handle eyedropper."""
+        """Pick color from image at given coordinates."""
 
         layer = self.state.get_selected_layer()
+
         if not layer:
             return None
 
@@ -797,10 +948,11 @@ class AppController:
         if color:
             self.state.set_color(color)
             return color
+
         return None
 
     def handle_fill(self, x, y):
-        """Apply flood fill on selected layer."""
+        """Perform flood fill operation on selected layer."""
 
         layer = self.state.get_selected_layer()
         if not layer:
@@ -809,6 +961,7 @@ class AppController:
         image = layer.image
         width, height = image.size
 
+        # Validate bounds
         if not (0 <= x < width and 0 <= y < height):
             return
 
@@ -816,15 +969,22 @@ class AppController:
 
         image_before = layer.image.copy()
         self.fill_service.fill(layer, x, y, color)
+
         image_after = layer.image.copy()
+
+        # Ensure selection constraints are preserved
         image_after = self._apply_selection_constraint(image_before, image_after)
+
         layer.image = image_after.copy()
+
         self._push_layer_pixel_command(layer, image_before, image_after, "Fill")
 
         self.state.notify()
         self.refresh_canvas()
 
     def _push_selection_mask_command(self, mask_before, mask_after, label: str = "Selection"):
+        """Push selection mask change into history if it is meaningful."""
+
         if mask_before is None and mask_after is None:
             return
 
@@ -853,7 +1013,7 @@ class AppController:
         self._apply_selection_with_toggle(mask_new)
 
     def handle_magic_wand(self, x, y, tolerance=40):
-        """Magic wand selection (color-based)."""
+        """Magic wand selection."""
 
         layer = self.state.get_selected_layer()
         if not layer:
@@ -866,7 +1026,7 @@ class AppController:
         self._apply_selection_with_toggle(mask_new)
 
     def _apply_selection_with_toggle(self, mask_new):
-        """Apply selection with toggle + undo/redo."""
+        """Apply selection with toggle and undo/redo."""
 
         if mask_new is None or mask_new.getbbox() is None:
             return
@@ -891,7 +1051,7 @@ class AppController:
         self.refresh_canvas()
 
     def handle_zoom_to_rect(self, x0, y0, x1, y1):
-        """Viewport zoom to fit the given image rectangle (non-destructive)."""
+        """Viewport zoom to fit the given image rectangle."""
 
         if not self._is_editor_screen():
             return
@@ -900,7 +1060,7 @@ class AppController:
             screen.canvas_panel.zoom_to_image_rect(x0, y0, x1, y1)
 
     def update_active_session_viewport(self, zoom_factor: float, offset_x: float, offset_y: float):
-        """Persist viewport (zoom multiplier + screen offsets of image origin) on the active tab."""
+        """Persist viewport on the active tab."""
 
         sess = self._active_session()
         if sess:
