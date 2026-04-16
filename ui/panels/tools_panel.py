@@ -37,8 +37,15 @@ class ToolsPanel(tk.Frame):
             "Paint Bucket": self._load_icon("assets/icons/paint_bucket.png"),
             "Eyedropper": self._load_icon("assets/icons/eyedropper.png"),
             "Magic Wand": self._load_icon("assets/icons/magic_wand.png"),
+            "Transform": self._load_icon("assets/icons/transform.png"),
             "Zoom": self._load_icon("assets/icons/zoom.png"),
         }
+
+    def _icon_exists(self, path):
+        """Check if icon file exists."""
+
+        import os
+        return os.path.exists(path)
 
     def _build(self):
         """Create tool buttons."""
@@ -50,10 +57,15 @@ class ToolsPanel(tk.Frame):
             ("Paint Bucket", lambda: self._select_tool("paint_bucket")),
             ("Eyedropper", lambda: self._select_tool("eyedropper")),
             ("Magic Wand", lambda: self._select_tool("magic_wand")),
+            ("Transform", lambda: self._select_tool("transform")),
             ("Zoom", lambda: self._select_tool("zoom_area")),
         ]
 
         for name, command in tools:
+            # Skip if icon doesn't exist
+            if self.icons[name] is None:
+                continue
+                
             btn = tk.Button(
                 self,
                 image=self.icons[name],
@@ -100,6 +112,7 @@ class ToolsPanel(tk.Frame):
             "paint_bucket": "Paint Bucket",
             "eyedropper": "Eyedropper",
             "magic_wand": "Magic Wand",
+            "transform": "Transform",
             "zoom_area": "Zoom",
         }
 
