@@ -1,8 +1,3 @@
-"""
-RGB-sized threshold-style filters for use with FilterService (HxWx3 uint8 output).
-Input images are RGB (as from pil_to_numpy).
-"""
-
 import cv2
 import numpy as np
 
