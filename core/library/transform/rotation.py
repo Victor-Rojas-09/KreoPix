@@ -4,7 +4,7 @@ import numpy as np
 class ImageRotator:
     """
     Rotate images using inverse mapping
-    and the nearest-neighbor method.
+    and nearest-neighbor method.
     """
 
     def apply(self, img: np.ndarray, ang_deg: float, fondo=0) -> np.ndarray:
@@ -40,8 +40,10 @@ class ImageRotator:
         out_cx = (out_W - 1) / 2.0
         out_cy = (out_H - 1) / 2.0
 
+        # preserve channels
         if img.ndim == 3:
-            out = np.full((out_H, out_W, 3), fondo, dtype=img.dtype)
+            channels = img.shape[2]
+            out = np.full((out_H, out_W, channels), fondo, dtype=img.dtype)
         else:
             out = np.full((out_H, out_W), fondo, dtype=img.dtype)
 

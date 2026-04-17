@@ -1,44 +1,50 @@
 from services.transform.transform_adapter import (
     CropAdapter,
-    TranslationAdapter,
+    ResizeAdapter,
     RotationAdapter,
-    ResizeAdapter
 )
 
-class TransformSession:
-    def __init__(self, image_np, position):
-        self.original = image_np
-        self.current = image_np.copy()
 
+class TransformSession:
+    """Represents a temporary transformation state."""
+
+    def __init__(self, image_np, position):
+        """Initialize a transform session."""
+
+        self.original = image_np
+
+        # Position in the layer (used during composition, NOT inside transform)
         self.x, self.y = position
 
-        self.scale = 1
-        self.rotation = 0
+        # Transformation parameters
+        self.scale = 1.0
+        self.rotation = 0.0
+
 
 class TransformToolService:
+    """Service responsible for applying transformation pipelines."""
 
     def __init__(self):
         self.crop = CropAdapter()
-        self.translate = TranslationAdapter()
         self.resize = ResizeAdapter()
         self.rotate = RotationAdapter()
 
     def create_session(self, pil_image, bbox):
+        """Create a transform session from a selection."""
 
         img_np = self.crop.from_selection(pil_image, bbox)
 
         return TransformSession(img_np, (bbox[0], bbox[1]))
 
-    def apply_all(self, session):
+    def apply_all(self, session: TransformSession):
+        """Apply all transformations to the session image."""
+
         img = session.original.copy()
 
-        # Escale
+        # Apply scaling (may reduce or increase resolution)
         img = self.resize.apply(img, session.scale)
 
-        # Rotate
+        # Apply rotation
         img = self.rotate.apply(img, session.rotation)
-
-        # Translate
-        img = self.translate.apply(img, session.x, session.y)
 
         return img
