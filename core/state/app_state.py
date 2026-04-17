@@ -1,6 +1,7 @@
 from core.image.image_format import ImageFormat
 from core.brush.presets import create_hard_brush
 from PIL import Image
+import numpy as np
 
 
 class AppState:
@@ -25,6 +26,10 @@ class AppState:
         self.current_color = (0, 0, 0, 255)
         self.recent_colors = []
         self.selection_mask: Image.Image | None = None
+
+        # Active transform session; None when no transform is in progress
+        self.transform_session = None
+
         # Threshold filters (UI-driven selection)
         self._active_threshold_filters = [
             "brightness",
@@ -65,6 +70,7 @@ class AppState:
 
     def has_format(self) -> bool:
         """Return True if a document is loaded."""
+
         return self.current_format is not None
 
     # ==========================================================
@@ -95,13 +101,13 @@ class AppState:
     # ==========================================================
 
     def set_tool(self, tool):
-        """Get the active tool."""
+        """Set the active tool and notify listeners."""
 
         self.current_tool = tool
         self.notify()
 
     def get_tool(self):
-        """Set the active tool."""
+        """Return the currently active tool name."""
 
         return self.current_tool
 
@@ -130,7 +136,7 @@ class AppState:
         return layers[index]
 
     def set_selected_layer(self, index: int):
-        """Get the selected layer index."""
+        """Set the selected layer by index, clamped to valid range."""
 
         layers = self.get_layers()
 
@@ -205,7 +211,6 @@ class AppState:
             self.notify()
 
     def update_brush_opacity(self, opacity: int):
-
         """Update the current brush opacity."""
 
         if self.current_brush:
@@ -216,7 +221,6 @@ class AppState:
         """Update the current brush color."""
 
         if self.current_brush:
-            # Save the color for the brush
             self.current_brush.brush_color = color
             self.notify()
 
@@ -238,7 +242,6 @@ class AppState:
         layer.filter_params[param_name] = value
         self.notify()
 
-
     def set_layer_filter(self, filter_id: str):
         """Set the filter ID for the currently selected layer."""
 
@@ -255,6 +258,7 @@ class AppState:
     # ==========================================================
     # Color
     # ==========================================================
+
     def set_color(self, color: tuple):
         """Set active color and update history."""
 
@@ -289,6 +293,7 @@ class AppState:
     # ==========================================================
     # Selection
     # ==========================================================
+
     def clear_selection(self):
         """Clear the active selection mask."""
 
@@ -374,3 +379,49 @@ class AppState:
 
         self.notify()
 
+    # ==========================================================
+    # Transform Session
+    # ==========================================================
+
+    def start_transform_session(self, original_image, position: tuple[int, int]):
+        """Start a new transform session with the given image and position."""
+
+        from services.transform.transform_services import TransformSession
+
+        # Accept both PIL and numpy inputs
+        if isinstance(original_image, Image.Image):
+            img_np = np.array(original_image)
+        else:
+            img_np = original_image
+
+        self.transform_session = TransformSession(img_np, position)
+        self.notify()
+
+    def update_transform(self, dx: float, dy: float, scale = None, rotation= None):
+        """Update transform parameters in the active session."""
+
+        if not self.transform_session:
+            return
+
+        if dx != 0 or dy != 0:
+            self.transform_session.x += dx
+            self.transform_session.y += dy
+
+        if scale is not None:
+            self.transform_session.scale = scale
+
+        if rotation is not None:
+            self.transform_session.rotation = rotation
+
+        self.notify()
+
+    def clear_transform_session(self):
+        """Clear the active transform session."""
+
+        self.transform_session = None
+        self.notify()
+
+    def has_active_transform(self) -> bool:
+        """Return True when a transform session is currently in progress."""
+
+        return self.transform_session is not None

@@ -3,8 +3,10 @@ from core.library.transform.scaling import compute_region_zoom_factor
 from ui.utils.tools.custom_slider import BlueSlider
 from ui.utils.tools.canvas_transform import CanvasTransform
 from ui.utils.tools.image_renderer import ImageRenderer
+from PIL import Image
 
 _STROKE_TOOLS = frozenset({"brush", "eraser"})
+
 
 class CanvasPanel(tk.Frame):
     """Central canvas panel responsible for rendering and interacting with the image."""
@@ -26,7 +28,15 @@ class CanvasPanel(tk.Frame):
         self.offset_y = 0.0
         self._suppress_scroll = False
 
-        # Layout Configuration
+        # Transform tool state
+        self._transform_rect_start = None
+        self._transform_drag_start = None
+        self._transform_overlay_tk = None
+
+        # Selection tool state
+        self._selection_start = None
+
+        # Layout
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
 
@@ -42,9 +52,10 @@ class CanvasPanel(tk.Frame):
             self.rebind_state_listener()
 
         self._bind_zoom_shortcuts()
+        self._bind_transform_shortcuts()
 
     # =========================================================
-    # State binding (multi-tab)
+    # State binding
     # =========================================================
 
     def rebind_state_listener(self):
@@ -66,7 +77,8 @@ class CanvasPanel(tk.Frame):
     # =========================================================
 
     def _build_top_bar(self):
-        """Create brush configuration toolbar."""
+        """Create the brush configuration toolbar."""
+
         self.top_bar = tk.Frame(self, bg="#333")
         self.top_bar.grid(row=0, column=0, sticky="ew")
         self.top_bar.grid_remove()
@@ -98,7 +110,7 @@ class CanvasPanel(tk.Frame):
         self.brush_size_slider.pack(side="left", padx=5, pady=10)
 
     def _build_viewport_area(self):
-        """Canvas with optional scroll sliders."""
+        """Build the main canvas widget and the optional scroll sliders."""
 
         # Top container
         self.viewport = tk.Frame(self, bg="#1e1e1e")
@@ -149,6 +161,57 @@ class CanvasPanel(tk.Frame):
         self.canvas.bind_all("<Control-minus>", self._on_ctrl_zoom_out)
         self.canvas.bind_all("<Control-KP_Subtract>", self._on_ctrl_zoom_out)
 
+    def _bind_transform_shortcuts(self):
+        """Keyboard and wheel shortcuts for the transform tool."""
+
+        self.canvas.bind("<Return>",     self._on_transform_apply)
+        self.canvas.bind("<KP_Enter>",   self._on_transform_apply)
+        self.canvas.bind("<Escape>",     self._on_transform_cancel)
+        self.canvas.bind("<MouseWheel>", self._on_mouse_wheel)
+
+    # =========================================================
+    # Transform keyboard / wheel handlers
+    # =========================================================
+
+    def _on_transform_apply(self, event=None):
+        """Commit the active transform session to the layer."""
+
+        if (
+            self.controller
+            and self.controller.state.get_tool() == "transform"
+            and self.controller.state.has_active_transform()
+        ):
+            self.controller.apply_transform()
+
+    def _on_transform_cancel(self, event=None):
+        """Cancel the active transform session and restore the original pixels."""
+
+        if (
+            self.controller
+            and self.controller.state.get_tool() == "transform"
+            and self.controller.state.has_active_transform()
+        ):
+            self.controller.cancel_transform()
+
+    def _on_mouse_wheel(self, event):
+        """Route mouse-wheel events."""
+
+        if not self.controller:
+            return
+
+        if (self.controller.state.get_tool() == "transform") and self.controller.state.has_active_transform():
+
+            scale_delta = 0.1 if event.delta > 0 else -0.1
+
+            current_scale = self.controller.state.transform_session.scale
+            new_scale = max(0.1, min(5.0, current_scale + scale_delta))
+
+            self.controller.update_transform(scale=new_scale)
+
+    # =========================================================
+    # Viewport zoom
+    # =========================================================
+
     def _on_ctrl_zoom_in(self, event=None):
         """Control zoom in."""
 
@@ -175,7 +238,7 @@ class CanvasPanel(tk.Frame):
         return self.controller and self.controller.state.has_format()
 
     def _sync_transform(self):
-        """Apply zoom_factor + offsets and clamp."""
+        """Apply zoom_factor and offsets and clamp."""
 
         if self.current_image is None:
             return
@@ -240,12 +303,10 @@ class CanvasPanel(tk.Frame):
             self._render_image()
 
     def _persist_viewport(self):
-        """Persist viewport to a image."""
+        """Persist viewport to an image."""
 
         if self.controller:
-            self.controller.update_active_session_viewport(
-                self.zoom_factor, self.offset_x, self.offset_y
-            )
+            self.controller.update_active_session_viewport(self.zoom_factor, self.offset_x, self.offset_y)
 
     def zoom_to_image_rect(self, x0, y0, x1, y1):
         """Fit the given image rectangle in the viewport."""
@@ -304,7 +365,7 @@ class CanvasPanel(tk.Frame):
             self.controller.request_update_brush_size(value)
 
     # =========================================================
-    # Scroll sliders (refactored)
+    # Scroll sliders
     # =========================================================
 
     def _handle_scroll(self, value: float, axis: str):
@@ -457,6 +518,15 @@ class CanvasPanel(tk.Frame):
         elif tool == "magic_wand":
             self.controller.handle_magic_wand(x, y)
 
+        elif tool == "transform":
+            if self.controller.state.has_active_transform():
+                # Phase 2: begin dragging the floating content
+                self._transform_drag_start = (x, y)
+            else:
+                # Phase 1: begin drawing the selection rectangle
+                self._transform_rect_start = (x, y)
+                self._draw_zoom_preview(x, y, x, y)
+
         elif tool == "zoom_area":
             self._zoom_rect_start = (x, y)
             self._draw_zoom_preview(x, y, x, y)
@@ -481,6 +551,24 @@ class CanvasPanel(tk.Frame):
             return
 
         self._stroke_points.append(self.transform.canvas_to_image(event.x, event.y))
+        x, y = self.transform.canvas_to_image(event.x, event.y)
+
+        if tool == "transform":
+            if self.controller.state.has_active_transform():
+                # Phase 2: translate floating content by incremental delta
+                if self._transform_drag_start is not None:
+
+                    dx = x - self._transform_drag_start[0]
+                    dy = y - self._transform_drag_start[1]
+
+                    self._transform_drag_start = (x, y)
+                    self.controller.update_transform(dx=dx, dy=dy)
+            else:
+                # Phase 1: update the selection rectangle preview
+                if self._transform_rect_start is not None:
+
+                    x0, y0 = self._transform_rect_start
+                    self._draw_zoom_preview(x0, y0, x, y)
 
     def _on_mouse_up(self, event):
         """Handle mouse up, the end of action."""
@@ -490,43 +578,60 @@ class CanvasPanel(tk.Frame):
 
         self._sync_transform()
         tool = self.controller.state.current_tool
+        x, y = self.transform.canvas_to_image(event.x, event.y)
 
-        # Selection the area
-        if tool not in _STROKE_TOOLS:
+        is_stroke_tool = tool in _STROKE_TOOLS
 
-            if tool == "select" and self._selection_start:
-                x0, y0 = self._selection_start
-                x1, y1 = self.transform.canvas_to_image(event.x, event.y)
-
-                self.controller.handle_rect_selection(x0, y0, x1, y1)
-                self._selection_start = None
-
-            if tool == "zoom_area" and self._zoom_rect_start:
-                x0, y0 = self._zoom_rect_start
-                x1, y1 = self.transform.canvas_to_image(event.x, event.y)
-
-                self.controller.handle_zoom_to_rect(x0, y0, x1, y1)
-                self._zoom_rect_start = None
-                self._clear_zoom_preview()
-
+        # Area and selection tools
+        if tool == "select" and self._selection_start:
+            x0, y0 = self._selection_start
+            self.controller.handle_rect_selection(x0, y0, x, y)
+            self._selection_start = None
             return
 
-        # Stroke tools and send full stroke
-        self._stroke_points.append(self.transform.canvas_to_image(event.x, event.y))
-        self.controller.handle_paint_stroke(self._stroke_points)
+        if tool == "zoom_area" and self._zoom_rect_start:
+            x0, y0 = self._zoom_rect_start
+            self.controller.handle_zoom_to_rect(x0, y0, x, y)
+            self._zoom_rect_start = None
+            self._clear_zoom_preview()
+            return
 
-        # Reset buffer
-        self._stroke_points = []
+        if tool == "transform":
+            if self.controller.state.has_active_transform():
+                self._transform_drag_start = None
+            else:
+                self._clear_zoom_preview()
+                if self._transform_rect_start is not None:
+                    x0, y0 = self._transform_rect_start
+                    self._transform_rect_start = None
+
+                    if abs(x - x0) < 2 and abs(y - y0) < 2:
+                        return
+
+                    self.controller.handle_rect_selection(x0, y0, x, y)
+                    self.controller.start_transform_from_selection()
+            return
+
+        # STROKE TOOLS
+        if is_stroke_tool:
+            self._stroke_points.append((x, y))
+            self.controller.handle_paint_stroke(self._stroke_points)
+            self._stroke_points = []
+
+
+    # =========================================================
+    # Toolbar visibility
+    # =========================================================
 
     def _brush_active(self):
-        """Activate brush."""
+        """Return True if the active tool belongs to the stroke-tools set."""
 
         t = self.controller.state.current_tool if self.controller else None
 
         return t in _STROKE_TOOLS
 
     def _update_toolbar_visibility(self):
-        """Show and hide brush settings UI."""
+        """Show or hide the brush settings toolbar based on the active tool."""
 
         if self._brush_active():
             self.top_bar.grid()
@@ -544,17 +649,27 @@ class CanvasPanel(tk.Frame):
         self._render_image()
 
     def refresh_canvas(self, state=None):
-        """Refresh canvas."""
+        """Refresh canvas content."""
 
         self._update_toolbar_visibility()
 
-        # Get current document
-        document = self.controller.state.get_format()
+        if not self.controller:
+            return
 
-        # Display it
-        if document:
-            image = document.composite()
-            self.display_image(image)
+        state = self.controller.state
+        document = state.get_format()
+
+        if not document:
+            return
+
+        base_image = document.composite()
+
+        # handle transform preview
+        if state.has_active_transform():
+            preview = self._render_transform_preview(base_image)
+            self.display_image(preview)
+        else:
+            self.display_image(base_image)
 
     def _on_resize(self, event):
         """Handle resize."""
@@ -568,6 +683,11 @@ class CanvasPanel(tk.Frame):
 
         if self.current_image is None:
             return
+
+        # Clear previous transform overlay if any (safe cleanup)
+        if self._transform_overlay_tk:
+            self.canvas.delete(self._transform_overlay_tk)
+            self._transform_overlay_tk = None
 
         self.canvas.update_idletasks()
 
@@ -608,6 +728,10 @@ class CanvasPanel(tk.Frame):
 
         # Draw overlays
         self._draw_selection_overlay()
+
+    # =========================================================
+    # Overlay helpers
+    # =========================================================
 
     def _draw_zoom_preview(self, x0, y0, x1, y1):
         """Temporary Rectangle."""
@@ -672,3 +796,30 @@ class CanvasPanel(tk.Frame):
             dash=(5, 3),
             width=1
         )
+
+    def _render_transform_preview(self, base_image):
+        """Render the transform preview."""
+
+        state = self.controller.state
+        session = state.transform_session
+
+        if session is None:
+            return base_image
+
+        # Get transformed sub-image from service
+        transformed_np = self.controller.transform_service.apply_all(session)
+        transformed_pil = Image.fromarray(transformed_np)
+
+        # Ensure RGBA for proper compositing
+        base = base_image.convert("RGBA")
+        overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+
+        # Position comes from session (NOT from transform service)
+        x = int(session.x)
+        y = int(session.y)
+
+        # Paste transformed image
+        overlay.paste(transformed_pil, (x, y))
+
+        # Composite preview
+        return Image.alpha_composite(base, overlay)

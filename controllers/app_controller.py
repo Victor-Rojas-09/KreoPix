@@ -15,6 +15,7 @@ from services.color import (
     ColorAdjustmentService,
     ThresholdStackService,
 )
+from services.transform.transform_services import TransformToolService
 from services.history import (
     AddLayerCommand,
     CommandHistory,
@@ -26,6 +27,7 @@ from services.history import (
 )
 from core.brush.brush_core import BrushPoint
 
+
 class AppController:
     """
     Main application controller.
@@ -36,6 +38,7 @@ class AppController:
     - Manage application state
     - Coordinate file operations (open, save, recent)
     - Delegate layer operations to AppState and Services
+    - Manage the transform tool lifecycle (start, update, apply, cancel)
     """
 
     # ==========================================================
@@ -54,6 +57,7 @@ class AppController:
         self.histogram_curve_service = HistogramCurveService()
         self.color_adjustment_service = ColorAdjustmentService()
         self.threshold_stack_service = ThresholdStackService()
+        self.transform_service = TransformToolService()
         self._empty_state = AppState()
         self._sessions: list[EditorSession] = []
         self._active_index = 0
@@ -61,7 +65,7 @@ class AppController:
         self._bind_tool_shortcuts()
 
     # ==========================================================
-    # Active session / state (backward-compatible API)
+    # Active session / state
     # ==========================================================
 
     @property
@@ -196,6 +200,8 @@ class AppController:
             ("<F>", "paint_bucket"),
             ("<w>", "magic_wand"),
             ("<W>", "magic_wand"),
+            ("<t>", "transform"),
+            ("<T>", "transform"),
             ("<z>", "zoom_area"),
             ("<Z>", "zoom_area"),
         )
@@ -520,7 +526,6 @@ class AppController:
         self.refresh_layers()
         self.refresh_canvas()
 
-
     # ==========================================================
     # BRUSH OPERATIONS
     # ==========================================================
@@ -572,7 +577,17 @@ class AppController:
         self.state.update_brush_color(color_tuple)
 
     def request_set_tool(self, tool_name: str):
-        """Change active tool."""
+        """
+        Change active tool.
+
+        If a transform session is active and the user switches to a different
+        tool, the session is cancelled and the layer is restored before the
+        tool change takes effect.
+        """
+
+        # Cancel active transform gracefully when switching away
+        if self.state.has_active_transform() and tool_name != "transform":
+            self.cancel_transform()
 
         self.state.set_tool(tool_name)
 
@@ -655,119 +670,6 @@ class AppController:
         HistogramCurvesDialog(parent, self)
 
     def request_histogram_curve_preview(self, snapshot: Image.Image, points: list):
-        layer = self.state.get_selected_layer()
-        if not layer:
-            return
-
-        base = snapshot.convert("RGBA")
-
-        out = self.histogram_curve_service.apply_curve(base, points)
-
-        layer.image = out.convert("RGBA")
-
-        self.state.notify()
-        self.refresh_canvas()
-
-    def request_histogram_curve_commit(self, snapshot: Image.Image, final_image: Image.Image):
-        """Record curves edit in history."""
-
-        layer = self.state.get_selected_layer()
-        if not layer:
-            return
-        self._push_layer_pixel_command(layer, snapshot, final_image, "Curves")
-        self.state.notify()
-        self.refresh_canvas()
-
-    def request_histogram_curve_cancel(self, snapshot: Image.Image):
-        """Restore layer image from dialog open snapshot."""
-
-        layer = self.state.get_selected_layer()
-        if not layer:
-            return
-        layer.image = snapshot.copy()
-        self.state.notify()
-        self.refresh_canvas()
-
-    # ==========================================================
-    # COLOR ADJUSTMENTS
-    # ==========================================================
-
-    def request_preview_color_adjustments(self,snapshot,brightness_slider: float,red_slider: float,green_slider: float,blue_slider: float):
-        """Restore layer image from dialog open snapshot."""
-
-        layer = self.state.get_selected_layer()
-
-        if not layer:
-            return
-
-
-        base = snapshot.convert("RGBA")
-
-        out = self.color_adjustment_service.apply_color_adjustments(
-            base,
-            brightness_slider,
-            red_slider,
-            green_slider,
-            blue_slider
-        )
-
-        layer.image = out.convert("RGBA")
-        self.state.notify()
-        self.refresh_canvas()
-
-    def request_apply_color_adjustments(self):
-        """Restore layer image from dialog open snapshot."""
-
-        layer = self.state.get_selected_layer()
-        if not layer:
-            return
-
-        before = layer.original_image.copy().convert("RGBA")
-        after = layer.image.copy().convert("RGBA")
-
-        self._push_layer_pixel_command(layer, before, after, "Color adjust")
-
-        # Save the changes
-        layer.original_image = after.copy()
-
-        print(layer.image.mode)
-        print(layer.image.getpixel((0, 0)))
-        self.state.notify()
-        self.refresh_canvas()
-
-    def request_reset_color_adjustments(self):
-        """Restore layer image from dialog open snapshot."""
-
-        layer = self.state.get_selected_layer()
-        if not layer:
-            return
-
-        layer.image = layer.original_image.copy().convert("RGBA")
-        layer.filter_id = "normal"
-        layer.filter_params = {}
-
-        self.state.notify()
-        self.refresh_canvas()
-
-    # ==========================================================
-    # HISTOGRAM & CURVES
-    # ==========================================================
-
-    def get_histogram_for_image(self, image: Image.Image):
-        """Return histogram data for a PIL image."""
-
-        return self.histogram_curve_service.get_histogram(image)
-
-    def open_histogram_curves_dialog(self, parent):
-        """Open histogram & curves editor for the currently selected layer."""
-
-        if not self.state.get_selected_layer():
-            return
-
-        from ui.utils.dialogs.histogram_curves import HistogramCurvesDialog
-        HistogramCurvesDialog(parent, self)
-
-    def request_histogram_curve_preview(self, snapshot: Image.Image, points: list):
         """Apply curve transformation for live preview."""
 
         layer = self.state.get_selected_layer()
@@ -809,7 +711,7 @@ class AppController:
     # COLOR ADJUSTMENTS
     # ==========================================================
 
-    def request_preview_color_adjustments(self, snapshot,brightness_slider: float, red_slider: float, green_slider: float, blue_slider: float):
+    def request_preview_color_adjustments(self, snapshot, brightness_slider: float, red_slider: float, green_slider: float, blue_slider: float):
         """Apply real-time color adjustment preview."""
 
         layer = self.state.get_selected_layer()
@@ -1044,7 +946,7 @@ class AppController:
             self._push_selection_mask_command(mask_old, None, "Clear selection")
             self.state.set_selection_mask(None)
         else:
-            # Nueva selección
+            # New selection
             self._push_selection_mask_command(mask_old, mask_new, "Selection")
             self.state.set_selection_mask(mask_new)
 
@@ -1067,3 +969,98 @@ class AppController:
             sess.zoom_factor = zoom_factor
             sess.offset_x = offset_x
             sess.offset_y = offset_y
+
+    # ==========================================================
+    # TRANSFORM TOOL
+    # ==========================================================
+
+    def start_transform_from_selection(self):
+        """Start a transform session from the current selection."""
+
+        if not self.state.has_selection():
+            return
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        # Get selection bounding box
+        selection_mask = self.state.get_selection_mask(layer.image.size)
+        bbox = selection_mask.getbbox()
+        if not bbox:
+            return
+
+        # Store the original image snapshot for cancel restoration
+        image_before = layer.image.copy()
+
+        # Create the transform session, embedding the cropped region
+        session = self.transform_service.create_session(layer.image, bbox)
+        self.state.start_transform_session(session.original, (bbox[0], bbox[1]))
+
+        # Erase selected pixels from the layer (make transparent)
+        transparent = Image.new("RGBA", layer.image.size, (0, 0, 0, 0))
+        image_after = Image.composite(transparent, image_before, selection_mask)
+        layer.image = image_after
+
+        # Record pixel removal so undo restores the layer correctly
+        self._push_layer_pixel_command(layer, image_before, image_after, "Transform start")
+
+        self.refresh_canvas()
+
+    def update_transform(self, dx: float, dy: float, scale = None, rotation = None):
+        """Update the active transform session parameters."""
+
+        self.state.update_transform(dx, dy, scale, rotation)
+        self.refresh_canvas()
+
+    def apply_transform(self):
+        """Apply the current transform session to the active layer."""
+
+        if not self.state.has_active_transform():
+            return
+
+        layer = self.state.get_selected_layer()
+        if not layer:
+            return
+
+        # Render the final transformed image via the service
+        transformed_np = self.transform_service.apply_all(self.state.transform_session)
+        transformed_pil = Image.fromarray(transformed_np)
+
+        image_before = layer.image.copy()
+        image_after = layer.image.copy()
+
+        # Position of the floating content on the canvas
+        x = int(self.state.transform_session.x)
+        y = int(self.state.transform_session.y)
+
+        # Composite transformed content onto the layer
+        temp_img = Image.new("RGBA", image_after.size, (0, 0, 0, 0))
+        temp_img.paste(transformed_pil, (x, y))
+        image_after = Image.alpha_composite(image_after, temp_img)
+
+        layer.image = image_after
+
+        # Record the composite result in history
+        self._push_layer_pixel_command(layer, image_before, image_after, "Transform apply")
+
+        # End session and clear selection
+        self.state.clear_transform_session()
+        self.state.clear_selection()
+
+        self.refresh_canvas()
+
+    def cancel_transform(self):
+        """Cancel the active transform session and restore the layer."""
+
+        if not self.state.has_active_transform():
+            return
+
+        # Restore the pixels that were erased when the session began
+        if self._get_history().can_undo():
+            self._get_history().undo()
+
+        # Clear session state (selection cleared by undo command)
+        self.state.clear_transform_session()
+
+        self.refresh_canvas()
