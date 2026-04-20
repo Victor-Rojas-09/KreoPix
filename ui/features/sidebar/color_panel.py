@@ -1,6 +1,6 @@
 import tkinter as tk
-from ui.utils.components.color_frame import ColorTabFrame
-from ui.utils.components.channels_frame import ChannelsTabFrame
+from ui.features.sidebar.color_frame import ColorTabFrame
+from ui.features.sidebar.channels_frame import ChannelsTabFrame
 
 class ColorPanel(tk.Frame):
     """Panel for color selection and image adjustments."""

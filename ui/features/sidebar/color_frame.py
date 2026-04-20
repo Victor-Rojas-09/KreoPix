@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser
-from ui.utils.tools.custom_slider import DarkRangeSlider
-from ui.utils.tools.icon_button import IconButton
+from ui.widgets.sliders import DarkRangeSlider
+from ui.widgets.buttons import IconButton
 from services.filters.filter_service import FILTER_REGISTRY
 
 

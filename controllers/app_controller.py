@@ -4,8 +4,8 @@ from PIL import Image
 
 from core.state.app_state import AppState
 from controllers.app_editor import EditorSession
-from ui.utils.dialogs.confirm_exit import ConfirmExitDialog
-from ui.utils.dialogs.new_project import NewProjectDialog
+from ui.dialogs.confirm_exit import ConfirmExitDialog
+from ui.dialogs.new_project import NewProjectDialog
 from services.images.image_service import ImageService
 from services.brushes.color_picker_service import ColorPickerService
 from services.brushes.fill_service import FillService
@@ -665,7 +665,7 @@ class AppController:
         if not self.state.get_selected_layer():
             return
 
-        from ui.utils.dialogs.histogram_curves import HistogramCurvesDialog
+        from ui.dialogs.histogram_curves import HistogramCurvesDialog
 
         HistogramCurvesDialog(parent, self)
 
@@ -775,7 +775,7 @@ class AppController:
         if not self.state.get_selected_layer():
             return
 
-        from ui.utils.dialogs.threshold_settings import ThresholdSettingsDialog
+        from ui.dialogs.threshold_settings import ThresholdSettingsDialog
         ThresholdSettingsDialog(parent, self)
 
     def request_threshold_stack_preview(

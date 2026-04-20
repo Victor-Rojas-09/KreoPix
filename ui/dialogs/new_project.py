@@ -1,7 +1,6 @@
 import tkinter as tk
-from tkinter import ttk
 
-from ui.utils.tools.window_positioner import WindowPositioner
+from ui.widgets.helpers import WindowPositioner
 
 
 class NewProjectDialog(tk.Toplevel):

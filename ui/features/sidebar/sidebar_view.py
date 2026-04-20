@@ -1,7 +1,7 @@
 import tkinter as tk
-from ui.utils.components.color_panel import ColorPanel
-from ui.utils.components.layers_panel import LayersPanel
-from ui.utils.components.brush_panel import BrushPanel
+from ui.features.sidebar.color_panel import ColorPanel
+from ui.features.sidebar.layers_panel import LayersPanel
+from ui.features.sidebar.brush_panel import BrushPanel
 
 class RightSidebar(tk.Frame):
     """Right sidebar containing color, layers and brush panels."""

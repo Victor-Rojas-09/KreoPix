@@ -1,8 +1,8 @@
 import os
 import tkinter as tk
-from ui.panels.tools_panel import ToolsPanel
-from ui.panels.canvas_panel import CanvasPanel
-from ui.panels.right_sidebar import RightSidebar
+from ui.features.toolbar.toolbar_view import ToolsPanel
+from ui.features.canvas.canvas_view import CanvasView
+from ui.features.sidebar.sidebar_view import RightSidebar
 
 
 class EditorScreen(tk.Frame):
@@ -38,7 +38,7 @@ class EditorScreen(tk.Frame):
         self.tools_panel = ToolsPanel(self, self.controller)
         self.tools_panel.grid(row=1, column=0, sticky="ns")
 
-        self.canvas_panel = CanvasPanel(self, self.controller)
+        self.canvas_panel = CanvasView(self, self.controller)
         self.canvas_panel.grid(row=1, column=1, sticky="nsew")
 
         self.right_sidebar = RightSidebar(self, self.controller)

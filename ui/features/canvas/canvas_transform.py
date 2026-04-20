@@ -3,8 +3,10 @@ def screen_to_image(sx, sy, zoom, offset_x, offset_y, img_w, img_h) -> tuple[int
 
     if zoom <= 0:
         return 0, 0
+
     ix = (sx - offset_x) / zoom
     iy = (sy - offset_y) / zoom
+
     return (
         int(max(0, min(img_w - 1, ix))),
         int(max(0, min(img_h - 1, iy))),
@@ -18,7 +20,7 @@ def image_to_screen(ix, iy, zoom, offset_x, offset_y) -> tuple[float, float]:
 
 
 class CanvasTransform:
-    """ Holds the active viewport: user zoom_factor, and screen-space offsets of the image origin."""
+    """ Holds the active viewport: user zoom_factor, and screen-space offsets."""
 
     def __init__(self):
         self.img_w = 1
@@ -26,20 +28,22 @@ class CanvasTransform:
         self._canvas_w = 1
         self._canvas_h = 1
 
+        self.zoom_factor = 1.0
+        self.zoom = 1.0
+        self.offset_x = 0.0
+        self.offset_y = 0.0
+
     @property
     def canvas_w(self) -> int:
-        """canvas width."""
+        """The canvas width."""
 
         return self._canvas_w
 
     @property
     def canvas_h(self) -> int:
-        """canvas height."""
+        """Canvas height."""
+
         return self._canvas_h
-        self.zoom_factor = 1.0
-        self.zoom = 1.0
-        self.offset_x = 0.0
-        self.offset_y = 0.0
 
     def update(self, canvas_w, canvas_h, img_w, img_h, zoom_factor, offset_x, offset_y):
         """Recompute effective zoom and clamp offsets to keep the image in a valid range."""

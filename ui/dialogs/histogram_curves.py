@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from ui.utils.tools.window_positioner import WindowPositioner
+from ui.widgets.helpers import WindowPositioner
 
 
 class HistogramCurvesDialog(tk.Toplevel):

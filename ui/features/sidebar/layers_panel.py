@@ -1,6 +1,6 @@
 import tkinter as tk
-from ui.utils.tools.custom_slider import BlueSlider
-from ui.utils.components.layer_row import LayerRow
+from ui.widgets.sliders import BlueSlider
+from ui.features.sidebar.layer_row import LayerRow
 from services.filters.filter_service import FILTER_REGISTRY
 
 
