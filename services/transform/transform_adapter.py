@@ -37,7 +37,7 @@ class ResizeAdapter:
             factor = int(round(scale))
             return self.upscaler.apply(img_np, factor)
 
-        # scale < 1 → reduce resolution
+        # If scale < 1, reduce resolution
         factor = int(round(1 / scale))
         factor = max(1, factor)
 
