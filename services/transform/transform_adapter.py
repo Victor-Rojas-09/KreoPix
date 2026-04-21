@@ -54,3 +54,4 @@ class RotationAdapter:
         """Apply rotation transformation."""
 
         return self.rotator.apply(img_np, angle)
+

@@ -1,68 +1,56 @@
+import cv2
 import numpy as np
 
 
 class ImageRotator:
-    """
-    Rotate images using inverse mapping
-    and nearest-neighbor method.
-    """
+    """Rotate images around their centre using cv2.warpAffine."""
 
-    def apply(self, img: np.ndarray, ang_deg: float, fondo=0) -> np.ndarray:
+    def apply(self, img: np.ndarray, ang_deg: float, fondo: int = 0) -> np.ndarray:
+        """
+        Rotate images by degrees counter-clockwise around the centre.
+        The output canvas expands to contain the full rotated image.
+        """
 
         H, W = img.shape[:2]
+        cx, cy = (W - 1) / 2.0, (H - 1) / 2.0
 
-        cx = (W - 1) / 2.0
-        cy = (H - 1) / 2.0
+        M = cv2.getRotationMatrix2D((cx, cy), ang_deg, 1.0)
 
-        ang = np.deg2rad(ang_deg)
-        cos_t = np.cos(ang)
-        sin_t = np.sin(ang)
+        cos_t = abs(M[0, 0])
+        sin_t = abs(M[0, 1])
+        out_W = int(np.ceil(H * sin_t + W * cos_t))
+        out_H = int(np.ceil(H * cos_t + W * sin_t))
 
-        esquinas = np.array([
-            [0, 0],
-            [W - 1, 0],
-            [W - 1, H - 1],
-            [0, H - 1]
-        ], dtype=np.float32)
+        # Shift centre to the expanded canvas
+        M[0, 2] += (out_W - W) / 2.0
+        M[1, 2] += (out_H - H) / 2.0
 
-        x = esquinas[:, 0] - cx
-        y = esquinas[:, 1] - cy
+        # RGBA: rotate RGB and alpha separately to preserve transparency
+        if img.ndim == 3 and img.shape[2] == 4:
+            rgb   = img[..., :3]
+            alpha = img[...,  3]
 
-        xr = x * cos_t - y * sin_t
-        yr = x * sin_t + y * cos_t
+            rgb_rot = cv2.warpAffine(
+                rgb, M, (out_W, out_H),
+                flags=cv2.INTER_NEAREST,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=(fondo, fondo, fondo),
+            )
+            alpha_rot = cv2.warpAffine(
+                alpha, M, (out_W, out_H),
+                flags=cv2.INTER_NEAREST,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=0,
+            )
 
-        min_x, max_x = xr.min(), xr.max()
-        min_y, max_y = yr.min(), yr.max()
+            return np.dstack([rgb_rot, alpha_rot])
 
-        out_W = int(np.ceil(max_x - min_x + 1))
-        out_H = int(np.ceil(max_y - min_y + 1))
+        # Grayscale or RGB
+        border_val = (fondo, fondo, fondo) if img.ndim == 3 else fondo
 
-        out_cx = (out_W - 1) / 2.0
-        out_cy = (out_H - 1) / 2.0
-
-        # preserve channels
-        if img.ndim == 3:
-            channels = img.shape[2]
-            out = np.full((out_H, out_W, channels), fondo, dtype=img.dtype)
-        else:
-            out = np.full((out_H, out_W), fondo, dtype=img.dtype)
-
-        for y_out in range(out_H):
-            for x_out in range(out_W):
-
-                x2 = x_out - out_cx
-                y2 = y_out - out_cy
-
-                x1 = x2 * cos_t + y2 * sin_t
-                y1 = -x2 * sin_t + y2 * cos_t
-
-                x_src = x1 + cx
-                y_src = y1 + cy
-
-                xi = int(round(x_src))
-                yi = int(round(y_src))
-
-                if 0 <= xi < W and 0 <= yi < H:
-                    out[y_out, x_out] = img[yi, xi]
-
-        return out
+        return cv2.warpAffine(
+            img, M, (out_W, out_H),
+            flags=cv2.INTER_NEAREST,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=border_val,
+        )

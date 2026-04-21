@@ -146,7 +146,7 @@ class CanvasView(tk.Frame):
         self._render_image()
 
     def refresh_canvas(self, state=None):
-        """Refresh canvas content."""
+        """Refresh canvas content. UI never calls services directly."""
 
         self._update_toolbar_visibility()
 
@@ -159,14 +159,15 @@ class CanvasView(tk.Frame):
         if not document:
             return
 
-        base_image = document.composite()
-
-        # handle transform preview
         if state.has_active_transform():
-            preview = self._render_transform_preview(base_image)
-            self.display_image(preview)
+            # Single entry-point through the controller — no service calls from UI
+            composite = self.controller.get_transform_preview()
+            if composite is None:
+                composite = document.composite()
         else:
-            self.display_image(base_image)
+            composite = document.composite()
+
+        self.display_image(composite)
 
     def _on_resize(self, event):
         """Handle resize."""
@@ -181,7 +182,7 @@ class CanvasView(tk.Frame):
         if self.current_image is None:
             return
 
-        # Clear previous transform overlay if any (safe cleanup)
+        # Clear previous transform overlay
         if self._transform_overlay_tk:
             self.canvas.delete(self._transform_overlay_tk)
             self._transform_overlay_tk = None
@@ -285,30 +286,3 @@ class CanvasView(tk.Frame):
             dash=(5, 3),
             width=1
         )
-
-    def _render_transform_preview(self, base_image):
-        """Render the transform preview."""
-
-        state = self.controller.state
-        session = state.transform_session
-
-        if session is None:
-            return base_image
-
-        # Get transformed sub-image from service
-        transformed_np = self.controller.transform_service.apply_all(session)
-        transformed_pil = Image.fromarray(transformed_np)
-
-        # Ensure RGBA for proper compositing
-        base = base_image.convert("RGBA")
-        overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
-
-        # Position comes from session
-        x = int(session.x)
-        y = int(session.y)
-
-        # Paste transformed image
-        overlay.paste(transformed_pil, (x, y))
-
-        # Composite preview
-        return Image.alpha_composite(base, overlay)

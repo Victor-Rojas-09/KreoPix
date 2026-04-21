@@ -1,5 +1,6 @@
 from core.image.image_format import ImageFormat
 from core.brush.presets import create_hard_brush
+from services.transform.transform_services import TransformToolService, TransformSession
 from PIL import Image
 import numpy as np
 
@@ -21,6 +22,8 @@ class AppState:
         self.selected_layer_index: int = 0
         self.current_tool = None
         self._listeners = []
+        self.transform_service = TransformToolService()
+        self.transform_session = None
 
         self.current_brush = create_hard_brush((0, 0, 0, 255))
         self.current_color = (0, 0, 0, 255)
@@ -383,22 +386,14 @@ class AppState:
     # Transform Session
     # ==========================================================
 
-    def start_transform_session(self, original_image, position: tuple[int, int]):
-        """Start a new transform session with the given image and position."""
+    def set_transform_params(self, session) -> None:
+        """Store a fully initialised TransformSession."""
 
-        from services.transform.transform_services import TransformSession
-
-        # Accept both PIL and numpy inputs
-        if isinstance(original_image, Image.Image):
-            img_np = np.array(original_image)
-        else:
-            img_np = original_image
-
-        self.transform_session = TransformSession(img_np, position)
+        self.transform_session = session
         self.notify()
 
-    def update_transform(self, dx: float, dy: float, scale = None, rotation= None):
-        """Update transform parameters in the active session."""
+    def update_transform(self, dx: float = 0, dy: float = 0, scale=None, rotation=None) -> None:
+        """Update position, scale and rotation and mark the cache as dirty."""
 
         if not self.transform_session:
             return
@@ -413,15 +408,18 @@ class AppState:
         if rotation is not None:
             self.transform_session.rotation = rotation
 
+        # Invalidate cache so get_preview() recomputes on next call
+        self.transform_session.dirty = True
+
         self.notify()
 
-    def clear_transform_session(self):
-        """Clear the active transform session."""
+    def clear_transform_session(self) -> None:
+        """End the active transform session."""
 
         self.transform_session = None
         self.notify()
 
     def has_active_transform(self) -> bool:
-        """Return True when a transform session is currently in progress."""
+        """True when a transform session is in progress."""
 
         return self.transform_session is not None

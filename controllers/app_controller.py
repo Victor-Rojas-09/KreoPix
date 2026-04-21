@@ -74,14 +74,20 @@ class AppController:
 
         if not self._sessions:
             return self._empty_state
+
         return self._sessions[self._active_index].state
 
     def _get_history(self) -> CommandHistory:
+        """Get history commands."""
+
         return self._sessions[self._active_index].history
 
     def _active_session(self) -> EditorSession | None:
+        """Active editor session, or None if no editor session exists."""
+
         if not self._sessions:
             return None
+
         return self._sessions[self._active_index]
 
     def get_sessions(self) -> list[EditorSession]:
@@ -90,6 +96,8 @@ class AppController:
         return list(self._sessions)
 
     def get_active_session_index(self) -> int:
+        """Return the active editor session index."""
+
         return self._active_index
 
     def activate_session(self, index: int):
@@ -117,6 +125,8 @@ class AppController:
                 screen.tools_panel._highlight(tool)
 
     def _notify_editor_tabs(self):
+        """Notify editor tab changes."""
+
         if self._is_editor_screen():
             screen = self.layout.current_screen
             if hasattr(screen, "refresh_tabs"):
@@ -133,13 +143,19 @@ class AppController:
             self._get_history().clear()
 
     def can_undo(self) -> bool:
+        """Valid undo command."""
+
         if not self._sessions:
             return False
+
         return self._get_history().can_undo()
 
     def can_redo(self) -> bool:
+        """Valid redo command."""
+
         if not self._sessions:
             return False
+
         return self._get_history().can_redo()
 
     def request_undo(self):
@@ -147,6 +163,7 @@ class AppController:
 
         if not self.state.has_format():
             return
+
         if self._get_history().undo():
             self.state.notify()
             self.refresh_layers()
@@ -157,12 +174,15 @@ class AppController:
 
         if not self.state.has_format():
             return
+
         if self._get_history().redo():
             self.state.notify()
             self.refresh_layers()
             self.refresh_canvas()
 
     def _is_editor_screen(self) -> bool:
+        """Import the editor screen."""
+
         from ui.screens.editor_screen import EditorScreen
 
         return isinstance(self.layout.current_screen, EditorScreen)
@@ -175,11 +195,15 @@ class AppController:
         self.root.bind_all("<Control-Shift-Z>", self._shortcut_redo)
 
     def _shortcut_undo(self, event=None):
+        """Valid undo shortcut."""
+
         if self._is_editor_screen() and self.state.has_format():
             self.request_undo()
             return "break"
 
     def _shortcut_redo(self, event=None):
+        """Valid redo shortcut."""
+
         if self._is_editor_screen() and self.state.has_format():
             self.request_redo()
             return "break"
@@ -209,16 +233,22 @@ class AppController:
             self.root.bind_all(seq, self._make_tool_shortcut_handler(tool))
 
     def _make_tool_shortcut_handler(self, tool_name: str):
+        """Create a handler for tool shortcuts."""
+
         def handler(event=None):
+
             if not self._is_editor_screen() or not self.state.has_format():
                 return
+
             self.request_set_tool(tool_name)
+
             from core.brush.presets import create_hard_brush, create_eraser
 
             if tool_name == "brush":
                 self.request_set_brush_by_preset(create_hard_brush, self.state.get_color())
             elif tool_name == "eraser":
                 self.request_set_brush_by_preset(create_eraser)
+
             self._sync_tools_highlight()
             return "break"
 
@@ -229,15 +259,19 @@ class AppController:
 
         if image_before.tobytes() == image_after.tobytes():
             return
+
         cmd = ReplaceLayerImageCommand(layer, image_before, image_after, description=description)
+
         self._get_history().push(cmd)
 
     def _apply_selection_constraint(self, image_before, image_after):
         """Apply selection mask so only selected pixels can be edited."""
 
         selection_mask = self.state.get_selection_mask(image_before.size)
+
         if selection_mask is None:
             return image_after
+
         return Image.composite(image_after, image_before, selection_mask)
 
     # ==========================================================
@@ -365,15 +399,19 @@ class AppController:
 
         if index < 0 or index >= len(self._sessions):
             return
+
         if len(self._sessions) == 1:
             ConfirmExitDialog(self.root, self.root.destroy)
             return
+
         prev_active = self._active_index
         self._sessions.pop(index)
+
         if prev_active == index:
             self._active_index = min(index, len(self._sessions) - 1)
         elif prev_active > index:
             self._active_index -= 1
+
         self._rebind_editor_listeners()
         self.state.notify()
         self.refresh_layers()
@@ -387,7 +425,9 @@ class AppController:
         sess = self._active_session()
         if not sess or not self._is_editor_screen():
             return
+
         screen = self.layout.current_screen
+
         if hasattr(screen, "canvas_panel") and hasattr(screen.canvas_panel, "set_viewport_from_session"):
             screen.canvas_panel.set_viewport_from_session(sess)
 
@@ -396,9 +436,12 @@ class AppController:
 
         if not self._is_editor_screen():
             return
+
         screen = self.layout.current_screen
+
         if hasattr(screen, "rebind_state_listeners"):
             screen.rebind_state_listeners()
+
         self._sync_viewport_from_session()
 
     def _go_to_editor(self):
@@ -420,6 +463,7 @@ class AppController:
         """Refresh canvas if current screen supports it."""
 
         screen = self.layout.current_screen
+
         if screen and hasattr(screen, "refresh"):
             screen.refresh()
 
@@ -427,6 +471,7 @@ class AppController:
         """Refresh layer panel if current screen supports it."""
 
         screen = self.layout.current_screen
+
         if screen and hasattr(screen, "refresh_layers"):
             screen.refresh_layers()
 
@@ -443,8 +488,10 @@ class AppController:
         """Return document layers."""
 
         document = self.get_document()
+
         if not document:
             return []
+
         return document.get_layers()
 
     def normalize_value(self, value, max_value=255):
@@ -502,6 +549,7 @@ class AppController:
         before = layer.opacity
         self.state.update_layer_opacity(layer, opacity)
         after = layer.opacity
+
         if before != after:
             self._get_history().push(
                 ReplaceLayerOpacityCommand(layer, before, after)
@@ -519,7 +567,9 @@ class AppController:
 
         idx = self.state.selected_layer_index
         removed_snapshot = layers[idx]
+
         cmd = RemoveLayerCommand(self.state, idx, removed_snapshot)
+
         self.state.remove_selected_layer()
         self._get_history().push(cmd)
 
@@ -577,13 +627,7 @@ class AppController:
         self.state.update_brush_color(color_tuple)
 
     def request_set_tool(self, tool_name: str):
-        """
-        Change active tool.
-
-        If a transform session is active and the user switches to a different
-        tool, the session is cancelled and the layer is restored before the
-        tool change takes effect.
-        """
+        """Change active tool."""
 
         # Cancel active transform gracefully when switching away
         if self.state.has_active_transform() and tool_name != "transform":
@@ -595,7 +639,9 @@ class AppController:
         """Create a brush from a preset and assign it to the state."""
 
         brush_color = color if color is not None else self.state.get_color()
+
         brush = preset_factory(brush_color) if preset_factory.__name__ != "create_eraser" else preset_factory()
+
         self.state.set_brush(brush)
 
     # ==========================================================
@@ -611,9 +657,12 @@ class AppController:
 
         before_id = layer.filter_id
         before_params = dict(layer.filter_params or {})
+
         self.state.set_layer_filter(filter_id)
+
         after_id = layer.filter_id
         after_params = dict(layer.filter_params or {})
+
         if before_id != after_id or before_params != after_params:
             self._get_history().push(
                 ReplaceLayerFilterStateCommand(
@@ -957,25 +1006,28 @@ class AppController:
 
         if not self._is_editor_screen():
             return
+
         screen = self.layout.current_screen
+
         if hasattr(screen, "canvas_panel") and hasattr(screen.canvas_panel, "zoom_to_image_rect"):
             screen.canvas_panel.zoom_to_image_rect(x0, y0, x1, y1)
 
     def update_active_session_viewport(self, zoom_factor: float, offset_x: float, offset_y: float):
         """Persist viewport on the active tab."""
 
-        sess = self._active_session()
-        if sess:
-            sess.zoom_factor = zoom_factor
-            sess.offset_x = offset_x
-            sess.offset_y = offset_y
+        session = self._active_session()
+
+        if session:
+            session.zoom_factor = zoom_factor
+            session.offset_x = offset_x
+            session.offset_y = offset_y
 
     # ==========================================================
     # TRANSFORM TOOL
     # ==========================================================
 
     def start_transform_from_selection(self):
-        """Start a transform session from the current selection."""
+        """Extract the selected region and begin a floating-transform session."""
 
         if not self.state.has_selection():
             return
@@ -984,37 +1036,55 @@ class AppController:
         if not layer:
             return
 
-        # Get selection bounding box
         selection_mask = self.state.get_selection_mask(layer.image.size)
         bbox = selection_mask.getbbox()
         if not bbox:
             return
 
-        # Store the original image snapshot for cancel restoration
         image_before = layer.image.copy()
 
-        # Create the transform session, embedding the cropped region
+        # Service creates the session (no image logic in controller)
         session = self.transform_service.create_session(layer.image, bbox)
-        self.state.start_transform_session(session.original, (bbox[0], bbox[1]))
 
-        # Erase selected pixels from the layer (make transparent)
-        transparent = Image.new("RGBA", layer.image.size, (0, 0, 0, 0))
-        image_after = Image.composite(transparent, image_before, selection_mask)
+        # Snapshot the layer BEFORE erasing, stored on the session for cancel
+        session.layer_snapshot = image_before.copy()
+
+        # Erase the selected region from the layer via the service
+        image_after = self.transform_service.erase_selection(image_before, selection_mask)
         layer.image = image_after
 
-        # Record pixel removal so undo restores the layer correctly
+        # Store session in state — this triggers notify() → refresh_canvas()
+        # so the session must be fully ready before this call
+        self.state.set_transform_params(session)
+
+        # Record the pixel removal for undo
         self._push_layer_pixel_command(layer, image_before, image_after, "Transform start")
 
         self.refresh_canvas()
 
-    def update_transform(self, dx: float, dy: float, scale = None, rotation = None):
-        """Update the active transform session parameters."""
+    def get_transform_preview(self) -> "Image.Image | None":
+        """Return a composited PIL image with the floating transform applied."""
+
+        if not self.state.has_active_transform():
+            return None
+
+        session = self.state.transform_session
+        document = self.state.get_format()
+        base_image = document.composite()
+
+        # Cached fast path
+        result_np = self.transform_service.get_preview(session)
+
+        return self.transform_service.composite_on_layer(base_image, session, result_np)
+
+    def update_transform(self, dx: float = 0, dy: float = 0, scale=None, rotation=None):
+        """Update session parameters and invalidate the preview cache."""
 
         self.state.update_transform(dx, dy, scale, rotation)
         self.refresh_canvas()
 
     def apply_transform(self):
-        """Apply the current transform session to the active layer."""
+        """Commit the floating region onto the active layer."""
 
         if not self.state.has_active_transform():
             return
@@ -1023,44 +1093,34 @@ class AppController:
         if not layer:
             return
 
-        # Render the final transformed image via the service
-        transformed_np = self.transform_service.apply_all(self.state.transform_session)
-        transformed_pil = Image.fromarray(transformed_np)
+        session = self.state.transform_session
 
+        # Final render (always fresh, bypasses cache)
+        result_np = self.transform_service.apply_final(session)
         image_before = layer.image.copy()
-        image_after = layer.image.copy()
-
-        # Position of the floating content on the canvas
-        x = int(self.state.transform_session.x)
-        y = int(self.state.transform_session.y)
-
-        # Composite transformed content onto the layer
-        temp_img = Image.new("RGBA", image_after.size, (0, 0, 0, 0))
-        temp_img.paste(transformed_pil, (x, y))
-        image_after = Image.alpha_composite(image_after, temp_img)
-
+        image_after = self.transform_service.composite_on_layer(
+            layer.image, session, result_np
+        )
         layer.image = image_after
 
-        # Record the composite result in history
         self._push_layer_pixel_command(layer, image_before, image_after, "Transform apply")
 
-        # End session and clear selection
         self.state.clear_transform_session()
         self.state.clear_selection()
 
         self.refresh_canvas()
 
     def cancel_transform(self):
-        """Cancel the active transform session and restore the layer."""
+        """Cancel the session and restore the layer WITHOUT touching undo history."""
 
         if not self.state.has_active_transform():
             return
 
-        # Restore the pixels that were erased when the session began
-        if self._get_history().can_undo():
-            self._get_history().undo()
+        layer = self.state.get_selected_layer()
+        session = self.state.transform_session
 
-        # Clear session state (selection cleared by undo command)
+        if layer is not None and session is not None and session.layer_snapshot is not None:
+            layer.image = session.layer_snapshot.copy()
+
         self.state.clear_transform_session()
-
         self.refresh_canvas()
