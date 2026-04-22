@@ -8,32 +8,18 @@ class BlendService:
     def __init__(self):
         self._adapter = BlendAdapter()
 
-    def merge(self, base: Image.Image, overlay: Image.Image, position=(0, 0)) -> Image.Image:
-        """Merge two images using additive blending."""
+    def blend(self, base_image: Image.Image, top_image: Image.Image) -> Image.Image:
+        """Standard alpha compositing."""
 
-        return self._adapter.blend_add(base, overlay, position)
+        if base_image is None:
+            return top_image
 
-    def merge_average(self, base: Image.Image, overlay: Image.Image, position=(0, 0)) -> Image.Image:
-        """Merge two images using average blending."""
+        if top_image is None:
+            return base_image
 
-        return self._adapter.blend_average(base, overlay, position)
+        return Image.alpha_composite(base_image, top_image)
 
-    def merge_layers(self, layers, mode="add") -> Image.Image:
-        """Merge a list of layers into a single image."""
+    def blend_average(self, base_image: Image.Image, top_image: Image.Image) -> Image.Image:
+        """Blend using average."""
 
-        if not layers:
-            return None
-
-        result = layers[0]
-
-        for layer_img in layers[1:]:
-            if mode == "add":
-                result = self.merge(result, layer_img)
-
-            elif mode == "average":
-                result = self.merge_average(result, layer_img)
-
-            else:
-                raise ValueError(f"Unsupported merge mode: {mode}")
-
-        return result
+        return self._adapter.blend_average(base_image, top_image)

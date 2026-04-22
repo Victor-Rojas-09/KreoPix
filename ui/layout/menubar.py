@@ -14,11 +14,9 @@ class MenuBar:
         self._build()
 
     def _build(self):
-        """
-        Builds the File menu for the application's main menu bar and
-        separators are added between logical groups of commands.
-        """
+        """Builds the main menu bar and handle logical groups of commands."""
 
+        # FILE MENU
         file_menu = tk.Menu(self.menu, tearoff=0)
 
         file_menu.add_command(
@@ -47,6 +45,9 @@ class MenuBar:
 
         self.menu.add_cascade(label="File", menu=file_menu)
 
+        # =========================
+        # EDIT MENU
+        # =========================
         edit_menu = tk.Menu(self.menu, tearoff=0)
 
         edit_menu.add_command(
@@ -63,6 +64,7 @@ class MenuBar:
 
         self.menu.add_cascade(label="Edit", menu=edit_menu)
 
+        # TOOLS MENU
         tools_menu = tk.Menu(self.menu, tearoff=0)
 
         tools_menu.add_command(
@@ -103,22 +105,26 @@ class MenuBar:
 
         self.menu.add_cascade(label="Tools", menu=tools_menu)
 
+        # LAYER MENU
         layer_menu = tk.Menu(self.menu, tearoff=0)
 
         layer_menu.add_command(
-            label="Merge Visible (Add)",
-            command=lambda: self._merge_visible("add"),
+            label="Merge Top 2 Layers",
+            command=lambda: self._merge_two(False),
             accelerator="Ctrl+E",
         )
 
         layer_menu.add_command(
-            label="Merge Visible (Average)",
-            command=lambda: self._merge_visible("average"),
+            label="Merge Top 2 Layers (Average)",
+            command=lambda: self._merge_two(True),
             accelerator="Ctrl+Shift+E",
         )
 
         self.menu.add_cascade(label="Layer", menu=layer_menu)
 
+    # =========================
+    # Methods for the menu
+    # =========================
     def _activate_tool(self, tool_name: str):
         """Switch tool using the same logic as keyboard shortcuts."""
 
@@ -128,19 +134,22 @@ class MenuBar:
         from core.brush.presets import create_hard_brush, create_eraser
 
         self.controller.request_set_tool(tool_name)
+
         if tool_name == "brush":
             self.controller.request_set_brush_by_preset(
-                create_hard_brush, self.controller.state.get_color()
+                create_hard_brush,
+                self.controller.state.get_color()
             )
         elif tool_name == "eraser":
             self.controller.request_set_brush_by_preset(create_eraser)
+
         if hasattr(self.controller, "_sync_tools_highlight"):
             self.controller._sync_tools_highlight()
 
-    def _merge_visible(self, mode: str):
-        """Trigger merge visible layers with the given blend mode."""
+    def _merge_two(self, use_average: bool):
+        """Trigger merge of top 2 visible layers."""
 
         if not self.controller.state.has_format():
             return
 
-        self.controller.request_merge_visible(mode=mode)
+        self.controller.request_merge_two_layers(use_average=use_average)

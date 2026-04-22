@@ -216,17 +216,13 @@ class AppController:
             return "break"
 
     def _shortcut_merge(self, event=None):
-        """Merge visible layers using standard alpha-composite."""
-
         if self._is_editor_screen() and self.state.has_format():
-            self.request_merge_visible(mode="normal")
+            self.request_merge_two_layers(use_average=False)
             return "break"
 
     def _shortcut_merge_avg(self, event=None):
-        """Merge visible layers using average blending."""
-
         if self._is_editor_screen() and self.state.has_format():
-            self.request_merge_visible(mode="average")
+            self.request_merge_two_layers(use_average=True)
             return "break"
 
     def _bind_tool_shortcuts(self):
@@ -1168,12 +1164,22 @@ class AppController:
         self.state.clear_transform_session()
         self.refresh_canvas()
 
+    def handle_deselect(self):
+        """Clear the active selection mask and record it in history."""
+
+        mask_before = self.state.selection_mask
+        if mask_before is None:
+            return
+
+        self._push_selection_mask_command(mask_before, None, "Deselect")
+        self.state.set_selection_mask(None)
+        self.refresh_canvas()
     # ==========================================================
     # MERGE OPERATIONS
     # ==========================================================
 
-    def request_merge_visible(self, mode: str = "normal"):
-        """Flatten all visible layers into a single merged layer."""
+    def request_merge_two_layers(self, use_average: bool = False):
+        """Merge top 2 visible layers and create a new layer."""
 
         document = self.state.get_format()
         if not document:
@@ -1185,39 +1191,33 @@ class AppController:
         if len(visible_layers) < 2:
             return
 
-        if mode == "normal":
+        # Top layers visible
+        top = visible_layers[-1]
+        below = visible_layers[-2]
 
-            # Correct flatten
-            size = visible_layers[0].image.size
-            merged_image = Image.new("RGBA", size, (0, 0, 0, 0))
+        base = below.image.convert("RGBA")
+        overlay = top.image.convert("RGBA")
 
-            for lyr in visible_layers:
-                img = lyr.get_image_with_opacity().convert("RGBA")
-                merged_image = Image.alpha_composite(merged_image, img)
-
+        # Select the blend services use
+        if use_average:
+            merged = self.blend_service.blend_average(base, overlay)
         else:
+            merged = self.blend_service.blend(base, overlay)
 
-            # Creative modes go through BlendService
-            visible_images = [l.image.convert("RGBA") for l in visible_layers]
-            merged_image = self.blend_service.merge_layers(visible_images, mode=mode)
+        # Add the merge in the top
+        top_index = layers.index(top)
+        insert_index = top_index + 1
 
-            if merged_image is None:
-                return
+        name = "Merged (Average)" if use_average else "Merged"
 
-        cmd = MergeLayersCommand(self.state, document, merged_image)
-        cmd.redo()
+        document.add_layer(name=name, insert_at=insert_index)
+        new_layer = document.layers[insert_index]
+        new_layer.image = merged
+
+        self.state.set_selected_layer(insert_index)
+
+        cmd = AddLayerCommand(self.state, document, insert_index, new_layer)
         self._get_history().push(cmd)
 
         self.refresh_layers()
-        self.refresh_canvas()
-
-    def handle_deselect(self):
-        """Clear the active selection mask and record it in history."""
-
-        mask_before = self.state.selection_mask
-        if mask_before is None:
-            return
-
-        self._push_selection_mask_command(mask_before, None, "Deselect")
-        self.state.set_selection_mask(None)
         self.refresh_canvas()
