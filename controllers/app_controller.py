@@ -113,10 +113,10 @@ class AppController:
         self.state.notify()
         self.refresh_layers()
         self.refresh_canvas()
-        self._sync_tools_highlight()
+        self.sync_tools_highlight()
         self._notify_editor_tabs()
 
-    def _sync_tools_highlight(self):
+    def sync_tools_highlight(self):
         """Keep tools panel button highlight in sync after tab switch."""
 
         if not self._is_editor_screen():
@@ -266,7 +266,7 @@ class AppController:
             elif tool_name == "eraser":
                 self.request_set_brush_by_preset(create_eraser)
 
-            self._sync_tools_highlight()
+            self.sync_tools_highlight()
             return "break"
 
         return handler
@@ -433,7 +433,7 @@ class AppController:
         self.state.notify()
         self.refresh_layers()
         self.refresh_canvas()
-        self._sync_tools_highlight()
+        self.sync_tools_highlight()
         self._notify_editor_tabs()
 
     def _sync_viewport_from_session(self):
@@ -469,7 +469,7 @@ class AppController:
         self._rebind_editor_listeners()
         self.refresh_layers()
         self.refresh_canvas()
-        self._sync_tools_highlight()
+        self.sync_tools_highlight()
         self._notify_editor_tabs()
 
     # ==========================================================

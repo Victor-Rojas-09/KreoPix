@@ -1,5 +1,4 @@
 import tkinter as tk
-
 from ui.widgets.helpers import WindowPositioner
 
 

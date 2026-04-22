@@ -1,5 +1,4 @@
 from PIL import Image
-
 from services.filters.utils import pil_to_numpy, numpy_to_pil
 
 from core.library.color.channels import (

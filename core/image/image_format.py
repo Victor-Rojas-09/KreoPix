@@ -38,16 +38,6 @@ class ImageFormat:
 
         return list(self.layers)
 
-    def composite(self):
-        """Combine all visible layers into one image."""
-
-        base = Image.new("RGBA", self.get_size(), (0, 0, 0, 0))
-        for layer in self.layers:
-            img = layer.get_image_with_opacity()
-            if img:
-                base = Image.alpha_composite(base, img)
-        return base
-
     def add_layer(self, name="Layer", insert_at=None):
         """Add a new layer. If insert_at is set, inserts at that index (0 = bottom)."""
 

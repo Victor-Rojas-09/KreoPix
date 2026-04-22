@@ -25,6 +25,7 @@ class BlendAdapter:
 
     def _compute_overlap(self, base, overlay, x, y):
         """Compute overlapping region between base and overlay given position."""
+
         H, W = base.shape[:2]
         h, w = overlay.shape[:2]
 

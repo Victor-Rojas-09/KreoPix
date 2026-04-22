@@ -13,6 +13,7 @@ class HistogramCurveService:
         self.hist = Histogram()
 
     def get_histogram(self, image: Image.Image) -> dict[str, object]:
+        """Get histogram data for given image."""
 
         if image is None:
             zero = np.zeros(256, dtype=np.int64)
@@ -20,7 +21,7 @@ class HistogramCurveService:
 
         np_img = pil_to_numpy(image)
 
-        # 👉 usamos la nueva clase (no compute_rgb_histograms)
+        # Histogram calculation
         h = {
             "R": self.hist.apply_red(np_img),
             "G": self.hist.apply_green(np_img),
@@ -28,6 +29,7 @@ class HistogramCurveService:
             "luma": self.hist.apply_luma(np_img),
         }
 
+        # Calculate maximum scale
         max_count = max(
             h["R"].max(),
             h["G"].max(),
@@ -36,6 +38,7 @@ class HistogramCurveService:
             1,
         )
 
+        # Return the final histograms and their maximum
         return {
             **h,
             "max_count": max_count,
@@ -47,15 +50,19 @@ class HistogramCurveService:
         if image is None:
             return None
 
+        # Separate channels
         rgba = image.convert("RGBA")
         r, g, b, a = rgba.split()
 
+        # Work only RGB
         rgb = Image.merge("RGB", (r, g, b))
         np_rgb = pil_to_numpy(rgb)
 
+        # Build LUT, convert points to table 0–255
         lut = CurveProcessor.build_lut(points)
         out_rgb = CurveProcessor.apply_lut_to_rgb(np_rgb, lut)
 
+        # Apply LUT
         out = Image.fromarray(out_rgb, "RGB")
         r2, g2, b2 = out.split()
 

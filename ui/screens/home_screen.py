@@ -14,6 +14,7 @@ class HomeScreen(tk.Frame):
         self.recent_files = []
 
         self._thumbnails = []
+        self._columns = 3
 
         self._configure_grid()
         self._create_header()
@@ -119,11 +120,16 @@ class HomeScreen(tk.Frame):
 
         self._thumbnails.clear()
 
-        for project in self.recent_files:
-            self._create_recent_card(project)
+        for index, project in enumerate(self.recent_files):
+            row = index // self._columns
+            col = index % self._columns
 
+            self._create_recent_card(project, row, col)
 
-    def _create_recent_card(self, project):
+        for i in range(self._columns):
+            self.scroll_frame.columnconfigure(i, weight=1)
+
+    def _create_recent_card(self, project, row, col):
         """Creates a visual card representing a recent project."""
 
         frame = tk.Frame(
@@ -134,7 +140,7 @@ class HomeScreen(tk.Frame):
             pady=10
         )
 
-        frame.pack(padx=10, pady=10, fill="x")
+        frame.grid(row=row, column=col, padx=10, pady=10, sticky="n")
 
         path = project["path"]
         name = project["name"]
@@ -157,7 +163,8 @@ class HomeScreen(tk.Frame):
             image=photo,
             compound="top",
             font=("Arial", 11),
-            pady = 10
+            pady=10
         )
         label.pack(padx=5, pady=5)
+
         label.bind("<Button-1>", lambda e, p=path: self.controller.request_open_recent(p))

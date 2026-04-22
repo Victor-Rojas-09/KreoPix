@@ -31,10 +31,14 @@ class GreenChannel:
     """
 
     def apply(self, img: np.ndarray) -> np.ndarray:
+
         result = np.copy(img)
+
         result[:, :, 0] = 0
         result[:, :, 2] = 0
+
         return result
+
 
 
 class BlueChannel:
@@ -43,9 +47,12 @@ class BlueChannel:
     """
 
     def apply(self, img: np.ndarray) -> np.ndarray:
+
         result = np.copy(img)
+
         result[:, :, 0] = 0
         result[:, :, 1] = 0
+
         return result
 
 
@@ -55,8 +62,11 @@ class MagentaChannel:
     """
 
     def apply(self, img: np.ndarray) -> np.ndarray:
+
         result = np.copy(img)
+
         result[:, :, 1] = 0
+
         return result
 
 
@@ -66,8 +76,11 @@ class CyanChannel:
     """
 
     def apply(self, img: np.ndarray) -> np.ndarray:
+
         result = np.copy(img)
+
         result[:, :, 0] = 0
+
         return result
 
 
@@ -77,6 +90,9 @@ class YellowChannel:
     """
 
     def apply(self, img: np.ndarray) -> np.ndarray:
+
         result = np.copy(img)
+
         result[:, :, 2] = 0
+
         return result

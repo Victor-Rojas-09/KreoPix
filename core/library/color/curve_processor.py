@@ -3,15 +3,15 @@ import numpy as np
 
 class CurveProcessor:
     """
-    Build a 256-entry LUT from control points and apply it to RGB channels.
+    Build an entry LUT from control points and apply it to RGB channels.
 
-    Control points are (x, y) in 0..255; x must be strictly increasing.
+    Control points are (x, y) in 0-255; x must be strictly increasing.
     Endpoints at x=0 and x=255 are required (inserted if missing).
     """
 
     @staticmethod
     def normalize_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
-        """Sort by x, clamp to 0..255, ensure endpoints at 0 and 255."""
+        """Sort by x, clamp to 0-255, ensure endpoints at 0 and 255."""
 
         if not points:
             return [(0, 0), (255, 255)]
@@ -25,6 +25,7 @@ class CurveProcessor:
         cleaned.sort(key=lambda p: p[0])
 
         merged: list[tuple[int, int]] = []
+
         for p in cleaned:
             if merged and merged[-1][0] == p[0]:
                 merged[-1] = p
@@ -33,6 +34,7 @@ class CurveProcessor:
 
         if merged[0][0] != 0:
             merged.insert(0, (0, merged[0][1]))
+
         if merged[-1][0] != 255:
             merged.append((255, merged[-1][1]))
 
@@ -43,10 +45,13 @@ class CurveProcessor:
         """Return uint8 LUT of length 256."""
 
         pts = CurveProcessor.normalize_points(points)
+
         xs = np.array([p[0] for p in pts], dtype=np.float64)
         ys = np.array([p[1] for p in pts], dtype=np.float64)
+
         idx = np.arange(256, dtype=np.float64)
         lut = np.interp(idx, xs, ys)
+
         return np.clip(np.round(lut), 0, 255).astype(np.uint8)
 
     @staticmethod
@@ -58,6 +63,8 @@ class CurveProcessor:
 
         base = img.astype(np.uint8)
         out = np.empty_like(base)
+
         for c in range(3):
             out[:, :, c] = lut[base[:, :, c]]
+
         return out

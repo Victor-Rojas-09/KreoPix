@@ -103,6 +103,12 @@ class MenuBar:
             accelerator="Z",
         )
 
+        tools_menu.add_command(
+            label="Transform",
+            command=lambda: self._activate_tool("transform"),
+            accelerator="T",
+        )
+
         self.menu.add_cascade(label="Tools", menu=tools_menu)
 
         # LAYER MENU
@@ -144,7 +150,7 @@ class MenuBar:
             self.controller.request_set_brush_by_preset(create_eraser)
 
         if hasattr(self.controller, "_sync_tools_highlight"):
-            self.controller._sync_tools_highlight()
+            self.controller.sync_tools_highlight()
 
     def _merge_two(self, use_average: bool):
         """Trigger merge of top 2 visible layers."""
