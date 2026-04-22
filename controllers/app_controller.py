@@ -10,12 +10,14 @@ from services.images.image_service import ImageService
 from services.brushes.color_picker_service import ColorPickerService
 from services.brushes.fill_service import FillService
 from services.selection import SelectionService
+from services.merge.blend_service import BlendService
 from services.color import (
     HistogramCurveService,
     ColorAdjustmentService,
     ThresholdStackService,
 )
 from services.transform.transform_services import TransformToolService
+from services.history.merge_layers import MergeLayersCommand
 from services.history import (
     AddLayerCommand,
     CommandHistory,
@@ -58,6 +60,7 @@ class AppController:
         self.color_adjustment_service = ColorAdjustmentService()
         self.threshold_stack_service = ThresholdStackService()
         self.transform_service = TransformToolService()
+        self.blend_service = BlendService()
         self._empty_state = AppState()
         self._sessions: list[EditorSession] = []
         self._active_index = 0
@@ -193,6 +196,10 @@ class AppController:
         self.root.bind_all("<Control-z>", self._shortcut_undo)
         self.root.bind_all("<Control-y>", self._shortcut_redo)
         self.root.bind_all("<Control-Shift-Z>", self._shortcut_redo)
+        self.root.bind_all("<Control-e>", self._shortcut_merge)
+        self.root.bind_all("<Control-E>", self._shortcut_merge)
+        self.root.bind_all("<Control-Shift-e>", self._shortcut_merge_avg)
+        self.root.bind_all("<Control-Shift-E>", self._shortcut_merge_avg)
 
     def _shortcut_undo(self, event=None):
         """Valid undo shortcut."""
@@ -206,6 +213,20 @@ class AppController:
 
         if self._is_editor_screen() and self.state.has_format():
             self.request_redo()
+            return "break"
+
+    def _shortcut_merge(self, event=None):
+        """Merge visible layers using standard alpha-composite."""
+
+        if self._is_editor_screen() and self.state.has_format():
+            self.request_merge_visible(mode="normal")
+            return "break"
+
+    def _shortcut_merge_avg(self, event=None):
+        """Merge visible layers using average blending."""
+
+        if self._is_editor_screen() and self.state.has_format():
+            self.request_merge_visible(mode="average")
             return "break"
 
     def _bind_tool_shortcuts(self):
@@ -1095,14 +1116,36 @@ class AppController:
 
         session = self.state.transform_session
 
-        # Final render (always fresh, bypasses cache)
+        # Produce the final transformed image
         result_np = self.transform_service.apply_final(session)
+        transformed_pil = Image.fromarray(result_np).convert("RGBA")
+
+        # Build a full-canvas RGBA overlay positioned
+        canvas_size = layer.image.size
+        overlay = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
+
+        x = int(session.x)
+        y = int(session.y)
+        tw, th = transformed_pil.size
+
+        # Clip to canvas bounds so paste never raises
+        paste_x = max(0, x)
+        paste_y = max(0, y)
+        src_x = paste_x - x
+        src_y = paste_y - y
+        clip_w = min(tw - src_x, canvas_size[0] - paste_x)
+        clip_h = min(th - src_y, canvas_size[1] - paste_y)
+
+        if clip_w > 0 and clip_h > 0:
+            region = transformed_pil.crop((src_x, src_y, src_x + clip_w, src_y + clip_h))
+            overlay.paste(region, (paste_x, paste_y))
+
+        # Alpha-composite the overlay onto the layer
         image_before = layer.image.copy()
-        image_after = self.transform_service.composite_on_layer(
-            layer.image, session, result_np
-        )
+        image_after = Image.alpha_composite(layer.image.convert("RGBA"), overlay)
         layer.image = image_after
 
+        # Record in undo history
         self._push_layer_pixel_command(layer, image_before, image_after, "Transform apply")
 
         self.state.clear_transform_session()
@@ -1123,4 +1166,58 @@ class AppController:
             layer.image = session.layer_snapshot.copy()
 
         self.state.clear_transform_session()
+        self.refresh_canvas()
+
+    # ==========================================================
+    # MERGE OPERATIONS
+    # ==========================================================
+
+    def request_merge_visible(self, mode: str = "normal"):
+        """Flatten all visible layers into a single merged layer."""
+
+        document = self.state.get_format()
+        if not document:
+            return
+
+        layers = document.get_layers()
+        visible_layers = [l for l in layers if l.visible]
+
+        if len(visible_layers) < 2:
+            return
+
+        if mode == "normal":
+
+            # Correct flatten
+            size = visible_layers[0].image.size
+            merged_image = Image.new("RGBA", size, (0, 0, 0, 0))
+
+            for lyr in visible_layers:
+                img = lyr.get_image_with_opacity().convert("RGBA")
+                merged_image = Image.alpha_composite(merged_image, img)
+
+        else:
+
+            # Creative modes go through BlendService
+            visible_images = [l.image.convert("RGBA") for l in visible_layers]
+            merged_image = self.blend_service.merge_layers(visible_images, mode=mode)
+
+            if merged_image is None:
+                return
+
+        cmd = MergeLayersCommand(self.state, document, merged_image)
+        cmd.redo()
+        self._get_history().push(cmd)
+
+        self.refresh_layers()
+        self.refresh_canvas()
+
+    def handle_deselect(self):
+        """Clear the active selection mask and record it in history."""
+
+        mask_before = self.state.selection_mask
+        if mask_before is None:
+            return
+
+        self._push_selection_mask_command(mask_before, None, "Deselect")
+        self.state.set_selection_mask(None)
         self.refresh_canvas()

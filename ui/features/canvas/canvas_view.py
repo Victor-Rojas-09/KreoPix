@@ -1,5 +1,4 @@
 import tkinter as tk
-from PIL import Image
 from ui.widgets.sliders import BlueSlider
 from ui.features.canvas.image_renderer import ImageRenderer
 from ui.features.canvas.viewport_manager import ViewportManager
@@ -94,7 +93,7 @@ class CanvasView(tk.Frame):
             from_=0,
             to=100,
             orient="vertical",
-            showvalue=0,
+            showvalue=False,
             length=120,
             command=lambda v: self.viewport.handle_scroll(v, "y"),
             bg="#333",
@@ -107,7 +106,7 @@ class CanvasView(tk.Frame):
             from_=0,
             to=100,
             orient="horizontal",
-            showvalue=0,
+            showvalue=False,
             length=120,
             command=lambda v: self.viewport.handle_scroll(v, "x"),
             bg="#333",

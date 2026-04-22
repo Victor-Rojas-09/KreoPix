@@ -1,8 +1,6 @@
 from core.image.image_format import ImageFormat
 from core.brush.presets import create_hard_brush
-from services.transform.transform_services import TransformToolService, TransformSession
 from PIL import Image
-import numpy as np
 
 
 class AppState:
@@ -22,7 +20,6 @@ class AppState:
         self.selected_layer_index: int = 0
         self.current_tool = None
         self._listeners = []
-        self.transform_service = TransformToolService()
         self.transform_session = None
 
         self.current_brush = create_hard_brush((0, 0, 0, 255))

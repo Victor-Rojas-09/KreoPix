@@ -103,6 +103,22 @@ class MenuBar:
 
         self.menu.add_cascade(label="Tools", menu=tools_menu)
 
+        layer_menu = tk.Menu(self.menu, tearoff=0)
+
+        layer_menu.add_command(
+            label="Merge Visible (Add)",
+            command=lambda: self._merge_visible("add"),
+            accelerator="Ctrl+E",
+        )
+
+        layer_menu.add_command(
+            label="Merge Visible (Average)",
+            command=lambda: self._merge_visible("average"),
+            accelerator="Ctrl+Shift+E",
+        )
+
+        self.menu.add_cascade(label="Layer", menu=layer_menu)
+
     def _activate_tool(self, tool_name: str):
         """Switch tool using the same logic as keyboard shortcuts."""
 
@@ -120,3 +136,11 @@ class MenuBar:
             self.controller.request_set_brush_by_preset(create_eraser)
         if hasattr(self.controller, "_sync_tools_highlight"):
             self.controller._sync_tools_highlight()
+
+    def _merge_visible(self, mode: str):
+        """Trigger merge visible layers with the given blend mode."""
+
+        if not self.controller.state.has_format():
+            return
+
+        self.controller.request_merge_visible(mode=mode)
