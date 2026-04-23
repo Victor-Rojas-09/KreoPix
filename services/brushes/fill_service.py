@@ -2,8 +2,11 @@ from collections import deque
 
 
 class FillService:
+    """Performs a flood fill on an image layer."""
 
     def fill(self, layer, x, y, new_color):
+        """Flood fill starting from (x, y)."""
+
         image = layer.image
 
         if image is None:
@@ -30,9 +33,11 @@ class FillService:
         if target_color == fill_rgba:
             return
 
+        # Breadth-First Search
         queue = deque([(x, y)])
 
         while queue:
+            # FIFO
             cx, cy = queue.popleft()
 
             if not (0 <= cx < w and 0 <= cy < h):
@@ -43,6 +48,7 @@ class FillService:
 
             image.putpixel((cx, cy), fill_rgba)
 
+            # Add neighbors at the queue
             queue.extend([
                 (cx + 1, cy),
                 (cx - 1, cy),

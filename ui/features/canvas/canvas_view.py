@@ -131,9 +131,9 @@ class CanvasView(tk.Frame):
     def _update_toolbar_visibility(self):
         """Show or hide the brush settings toolbar based on the active tool."""
 
-        t = self.controller.state.current_tool if self.controller else None
+        tool = self.controller.state.current_tool if self.controller else None
 
-        if t in _STROKE_TOOLS:
+        if tool in _STROKE_TOOLS:
             self.top_bar.grid()
         else:
             self.top_bar.grid_remove()

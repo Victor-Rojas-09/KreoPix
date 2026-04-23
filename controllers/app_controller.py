@@ -971,6 +971,7 @@ class AppController:
         """Rectangle selection (geometry-based)."""
 
         layer = self.state.get_selected_layer()
+
         if not layer:
             return
 
@@ -984,6 +985,7 @@ class AppController:
         """Magic wand selection."""
 
         layer = self.state.get_selected_layer()
+
         if not layer:
             return
 
@@ -1174,6 +1176,7 @@ class AppController:
         self._push_selection_mask_command(mask_before, None, "Deselect")
         self.state.set_selection_mask(None)
         self.refresh_canvas()
+
     # ==========================================================
     # MERGE OPERATIONS
     # ==========================================================

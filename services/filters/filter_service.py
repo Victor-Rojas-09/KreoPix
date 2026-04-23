@@ -24,7 +24,7 @@ from core.library.color.adjustments import (
     BlueAdjust
 )
 
-from core.library.segmentation.threshold_filters_rgb import (
+from core.library.segmentation.threshold_filters import (
     GlobalBinarizeRgb,
     AdaptiveGaussianRgb,
     AdaptiveMeanRgb,

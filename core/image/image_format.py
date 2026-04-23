@@ -18,12 +18,15 @@ class ImageFormat:
 
         if image:
             self.width, self.height = image.size
+
             bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
             self.layers.append(Layer(bg, name="Background"))
             self.layers.append(Layer(image, name="Layer 1"))
+
         else:
             self.width = width
             self.height = height
+
             # Transparent background for blank project
             bg = Image.new("RGBA", (width, height), (255, 255, 255, 255))
             self.layers.append(Layer(bg, name="Background"))
@@ -50,6 +53,7 @@ class ImageFormat:
         else:
             insert_at = max(0, min(int(insert_at), len(self.layers)))
             self.layers.insert(insert_at, new_layer)
+
         return new_layer
 
     def composite(self, blend_service=None, filter_service=None):
